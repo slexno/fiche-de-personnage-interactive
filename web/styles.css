@@ -1,0 +1,9 @@
+body { font-family: Arial, sans-serif; max-width: 1400px; margin: 0 auto; padding: 16px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+button { padding: 6px 10px; cursor: pointer; }
+.hidden { display: none; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+th, td { border: 1px solid #bbb; padding: 6px; text-align: left; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.warning { color: #a00; font-weight: bold; }
+.card { border: 1px solid #ccc; padding: 10px; border-radius: 6px; }

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fiche personnage interactive</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <h1>Fiche de personnage interactive</h1>
+  <div class="tabs">
+    <button data-tab="stats">Statistiques</button>
+    <button data-tab="inventory">Inventaire</button>
+    <button data-tab="shop">Magasin</button>
+  </div>
+
+  <section id="stats" class="tab"></section>
+  <section id="inventory" class="tab hidden"></section>
+  <section id="shop" class="tab hidden"></section>
+
+  <script src="/app.js"></script>
+</body>
+</html>

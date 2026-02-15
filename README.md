@@ -1,2 +1,11 @@
 # fiche-de-personnage-interactive
-une fiche de personnage interactive avec un inventaire interactif et un magasin intégré
+
+Application Python + interface HTML pour gérer une fiche de personnage (statistiques DnD, inventaire, équipement, armes, magasin) avec persistance dans les fichiers Excel.
+
+## Lancer
+
+```bash
+python app.py
+```
+
+Puis ouvrir `http://localhost:8000`.
