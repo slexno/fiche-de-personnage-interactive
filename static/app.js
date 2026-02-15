@@ -7,7 +7,7 @@ const money = (v) => Number(v || 0).toFixed(2);
 const clean = (v) => (v === undefined || v === null ? '' : String(v));
 const isFilled = (v) => clean(v).trim() !== '' && clean(v).trim() !== '0';
 
-const itemActions = new Set(['update_item', 'toggle_equip', 'assign_type', 'sell']);
+const itemActions = new Set(['toggle_equip', 'assign_type', 'sell']);
 
 const apiAction = async (payload) => {
   const res = await fetch('/api/action', {
@@ -24,7 +24,7 @@ const apiAction = async (payload) => {
   state = json.state;
   render();
 
-  if (modalInventoryId && itemActions.has(payload.action)) {
+  if (modalInventoryId && itemActions.has(payload.action) && payload.source !== 'inline') {
     const stillThere = [...state.inventory.bag, ...state.inventory.chest].find(x => x.id === modalInventoryId);
     if (stillThere) openInventoryModal(modalInventoryId);
     else closeModal();
@@ -84,8 +84,8 @@ const itemRow = (it, from) => {
   const to = from === 'sac à dos' ? 'coffre' : 'sac à dos';
   return `<tr>
     <td>${nameCell(it.id, it.Objet)}</td>
-    <td><input type="number" step="0.1" value="${it['Prix unitaire (en crédit)'] || 0}" onchange="quickUpdate('${it.id}','Prix unitaire (en crédit)',this.value)"></td>
-    <td><input type="number" step="0.1" value="${it['poid unitaire (kg)'] || 0}" onchange="quickUpdate('${it.id}','poid unitaire (kg)',this.value)"></td>
+    <td>${money(it['Valeur (en crédit)'] || 0)}</td>
+    <td>${money(it['Poid (kg)'] || 0)}</td>
     <td><input type="number" min="0" value="${it['Quantité'] || 1}" onchange="quickUpdate('${it.id}','Quantité',this.value)"></td>
     <td>${it.type || 'item'}</td>
     <td><input id="move-${it.id}" type="number" min="1" max="${it['Quantité'] || 1}" value="1" style="width:70px"><button onclick="transferQty('${from}','${to}','${it.id}')">Transférer</button></td>
@@ -104,7 +104,7 @@ const renderInventory = () => {
       <div class="row"><strong>Crédits:</strong> <input type='number' step='0.01' value='${inv.credits}' onchange='updateCredits(this.value)' style='width:140px'> | <strong>Poids:</strong> ${money(inv.bag_weight)}kg ${inv.overweight ? '<span class="warn">⚠ surcharge -1 dex</span>' : ''}</div>
       <div class="row"><button onclick="sortBag('alpha')">A-Z</button><button onclick="sortBag('prix')">Prix</button><button onclick="sortBag('poids')">Poids</button></div>
       <div class="table-wrap"><table>
-        <tr><th>Nom (cliquable)</th><th>Valeur unitaire</th><th>Poids unitaire</th><th>Quantité</th><th>Type</th><th>Action</th></tr>
+        <tr><th>Nom (cliquable)</th><th>Valeur totale</th><th>Poids total</th><th>Quantité</th><th>Type</th><th>Action</th></tr>
         ${inv.bag.map(i => itemRow(i, 'sac à dos')).join('')}
       </table></div>
 
@@ -117,7 +117,7 @@ const renderInventory = () => {
     <div class="panel">
       <h2>Coffre</h2>
       <div class="table-wrap"><table>
-        <tr><th>Nom (cliquable)</th><th>Valeur unitaire</th><th>Poids unitaire</th><th>Quantité</th><th>Type</th><th>Action</th></tr>
+        <tr><th>Nom (cliquable)</th><th>Valeur totale</th><th>Poids total</th><th>Quantité</th><th>Type</th><th>Action</th></tr>
         ${inv.chest.map(i => itemRow(i, 'coffre')).join('')}
       </table></div>
 
@@ -156,7 +156,7 @@ window.updateStat = (name, score) => apiAction({ action: 'update_stat', name, sc
 window.toggleSkill = (name, specialized) => apiAction({ action: 'toggle_skill', name, specialized });
 window.sortBag = (key) => apiAction({ action: 'sort', key, source: 'sac à dos' });
 window.transferQty = (from, to, id) => apiAction({ action: 'transfer_item', from, to, id, qty: document.getElementById(`move-${id}`).value });
-window.quickUpdate = (id, key, value) => apiAction({ action: 'update_item', id, [key]: value });
+window.quickUpdate = (id, key, value) => apiAction({ action: 'update_item', id, [key]: value, source: 'inline' });
 window.updateCredits = (credits) => apiAction({ action: 'update_credits', credits });
 window.unequipItem = (id) => apiAction({ action: 'toggle_equip', id, equiped: false });
 window.buy = (sheet, name, qty=null) => {
@@ -215,6 +215,7 @@ window.saveEditModal = async () => {
     const el = document.getElementById(`edit-${k.replace(/[^a-zA-Z0-9]/g,'_')}`);
     if (el) payload[k] = el.value;
   });
+  payload.source = 'modal';
   await apiAction(payload);
   assignTypePending = null;
   closeEditModal();

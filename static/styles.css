@@ -16,7 +16,7 @@ body {
   background: radial-gradient(circle at top, #1b2230 0%, var(--bg) 35%);
   color: var(--text);
 }
-.container { width: min(1400px, 96vw); margin: 22px auto; }
+.container { width: calc(100vw - 24px); max-width: none; margin: 12px auto; }
 h1 { margin-bottom: 14px; }
 .tabs { display: flex; gap: 10px; margin-bottom: 16px; }
 button, input, select {
@@ -66,3 +66,6 @@ tr.clickable:hover { background: rgba(90,169,255,.1); }
 
 .link-btn { background: transparent; border: 0; color: #8bc3ff; text-decoration: underline; padding: 0; }
 .link-btn:hover { color: #b6daff; }
+
+#inventory .grid { grid-template-columns: minmax(780px, 1.5fr) minmax(420px, 1fr); }
+#inventory .table-wrap { max-height: 55vh; }
