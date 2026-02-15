@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import argparse
 import json
+import os
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -45,7 +47,24 @@ class AppHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
+def run_server(preferred_port: int = 8000):
+    tried = []
+    for port in [preferred_port, 8080, 5000, 8001, 8888]:
+        if port in tried:
+            continue
+        tried.append(port)
+        try:
+            server = ThreadingHTTPServer(("0.0.0.0", port), AppHandler)
+            print(f"Serveur démarré sur http://localhost:{port}")
+            server.serve_forever()
+            return
+        except OSError:
+            continue
+    raise OSError("Impossible de démarrer le serveur: ports 8000/8080/5000/8001/8888 indisponibles")
+
+
 if __name__ == "__main__":
-    server = ThreadingHTTPServer(("0.0.0.0", 8000), AppHandler)
-    print("Serveur démarré sur http://localhost:8000")
-    server.serve_forever()
+    parser = argparse.ArgumentParser(description="Fiche de personnage interactive")
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")), help="Port HTTP")
+    args = parser.parse_args()
+    run_server(args.port)

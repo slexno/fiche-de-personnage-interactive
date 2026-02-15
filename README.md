@@ -8,7 +8,7 @@ Application Python + interface HTML pour gérer une fiche de personnage inspiré
 python app.py
 ```
 
-Puis ouvrir `http://localhost:8000`.
+Puis ouvrir `http://localhost:8000` (ou `http://localhost:8080` si le port 8000 est déjà utilisé).
 
 ## Fonctionnalités implémentées
 
@@ -18,3 +18,6 @@ Puis ouvrir `http://localhost:8000`.
 - Assignation d'objets en armes/équipements, avec équipement/déséquipement (limites 4 armes, 3 équipements).
 - Magasin multi-sous-onglets basé sur toutes les feuilles de `magasin.xlsx` (achat et vente via crédits).
 - Synchronisation des changements vers les fichiers Excel (`caracteristique.xlsx`, `inventaire.xlsx`, `magasin.xlsx`).
+
+
+> Si vous tapez seulement `http://localhost` sans port, le navigateur essaie le port 80 et vous aurez "connexion refusée".
