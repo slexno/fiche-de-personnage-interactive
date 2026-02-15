@@ -571,9 +571,16 @@ class CharacterAppStore:
     def _sort(self, payload):
         key = payload["key"]
         source = self.inv.sheets[payload.get("source", "sac à dos")]
-        if key == "alpha": source.sort(key=lambda x: x.get("Objet", "").lower())
-        elif key == "prix": source.sort(key=lambda x: self._to_float(x.get("Prix unitaire (en crédit)", 0)))
-        elif key == "poids": source.sort(key=lambda x: self._to_float(x.get("Poid (kg)", 0)))
+        if key == "alpha":
+            source.sort(key=lambda x: x.get("Objet", "").lower())
+        elif key == "prix":
+            source.sort(key=lambda x: self._to_float(
+                x.get("Valeur (en crédit)", self._to_float(x.get("Prix unitaire (en crédit)", 0)) * self._to_float(x.get("Quantité", 1), 1))
+            ))
+        elif key == "poids":
+            source.sort(key=lambda x: self._to_float(
+                x.get("Poid (kg)", self._to_float(x.get("poid unitaire (kg)", 0)) * self._to_float(x.get("Quantité", 1), 1))
+            ))
 
     def _sync_derived_tables(self):
         for sheet in ["sac à dos", "coffre"]:
