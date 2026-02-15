@@ -247,6 +247,7 @@ class CharacterAppStore:
                     row.get("Modificateur")
                     or row.get("Hit Mod")
                     or row.get("Hit Stat")
+                    or (row.get("Hit") if not re.fullmatch(r"-?\d+(\.\d+)?", str(row.get("Hit", "")).strip()) else "")
                     or row.get("modificateur")
                     or ""
                 )
@@ -318,8 +319,9 @@ class CharacterAppStore:
         return stats, effective, max_carry, dex_penalty
 
     def _weapon_hit_display(self, item: dict, effective_map: dict[str, float]) -> str:
-        base = self._to_float(item.get("Hit", 0), 0)
-        mod_name = str(item.get("Hit Stat", "") or item.get("Modificateur", "")).lower()
+        raw_hit = str(item.get("Hit", "") or "").strip()
+        base = self._to_float(raw_hit, 0) if re.fullmatch(r"-?\d+(\.\d+)?", raw_hit) else 0
+        mod_name = str(item.get("Hit Stat", "") or item.get("Modificateur", "") or (raw_hit if base == 0 else "")).lower()
         stat_bonus = 0
         if mod_name:
             stat_bonus = next((v for k, v in effective_map.items() if k.startswith(mod_name[:3])), 0)
@@ -334,7 +336,6 @@ class CharacterAppStore:
                 continue
             specialized = self._truthy(r.get("Spécialisation", "0"))
             expertise = self._truthy(r.get("Expertise", "0"))
-            base = int(self._to_float(r.get("Bonus", "0"), 0))
             mod = str(r.get("Modificateur", ""))
             stat_mod_bonus = 0
             if mod:
@@ -342,7 +343,7 @@ class CharacterAppStore:
             skills.append({
                 "name": r.get("Competence"),
                 "mod": mod,
-                "bonus": base + stat_mod_bonus + (2 if specialized else 0) + (2 if expertise else 0),
+                "bonus": stat_mod_bonus + (2 if specialized else 0) + (2 if expertise else 0),
                 "specialized": specialized,
                 "expertise": expertise,
             })
@@ -520,6 +521,13 @@ class CharacterAppStore:
         credits = self._credits()
         if credits < total:
             return {"ok": False, "error": "Fonds insuffisants", "missing_credits": round(total - credits, 2)}
+        raw_hit = str(row.get("Hit", "") or "").strip()
+        hit_is_number = bool(re.fullmatch(r"-?\d+(\.\d+)?", raw_hit))
+        hit_stat = (
+            row.get("resolved_hit_modifier")
+            or row.get("Hit Stat")
+            or ("" if hit_is_number else raw_hit)
+        )
         self._set_credits(credits - total)
         self._add_item({"item": {
             "Objet": name,
@@ -528,9 +536,9 @@ class CharacterAppStore:
             "description": row.get("description", ""),
             "poid unitaire (kg)": row.get("poid unitaire(kg)", "0"),
             "Range (ft)": row.get("Range (ft)", ""),
-            "Hit": row.get("Hit", ""),
+            "Hit": raw_hit if hit_is_number else "0",
             "Damage": row.get("Damage", ""),
-            "Hit Stat": row.get("resolved_hit_modifier", row.get("Modificateur", "")),
+            "Hit Stat": hit_stat,
             "bonus Armor class": row.get("bonus armor class", "0"),
             "effet(optionel)": row.get("effet", ""),
         }})

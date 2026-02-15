@@ -6,6 +6,13 @@ let assignTypePending = null;
 const money = (v) => Number(v || 0).toFixed(2);
 const clean = (v) => (v === undefined || v === null ? '' : String(v));
 const isFilled = (v) => clean(v).trim() !== '' && clean(v).trim() !== '0';
+const isNumeric = (v) => /^-?\d+(\.\d+)?$/.test(clean(v).trim());
+const resolveImageSrc = (value) => {
+  const imgVal = clean(value).trim();
+  if (!imgVal || imgVal === '#VALUE!' || imgVal === '#N/A') return '';
+  const raw = imgVal.startsWith('http') ? imgVal : (imgVal.startsWith('image/') ? '/' + imgVal : (imgVal.includes('/') ? '/' + imgVal.replace(/^\/+/, '') : '/image/' + imgVal));
+  return raw.startsWith('http') ? raw : encodeURI(raw);
+};
 
 const itemActions = new Set(['toggle_equip', 'assign_type', 'sell']);
 
@@ -143,7 +150,8 @@ const renderShop = () => {
         <tr><th>Objet</th><th>Image</th><th>Modificateur</th><th>Prix</th><th>Poids</th><th>Description</th><th>Achat</th></tr>
         ${items.map(i => {
           const name = i["nom de l'objet"] || '';
-          const img = i['resolved_image'] ? `<img class='shop-thumb' src='/${i['resolved_image']}' alt='${name}'>` : '-';
+          const imgSrc = resolveImageSrc(i['resolved_image'] || i.image);
+          const img = imgSrc ? `<img class='shop-thumb' src='${imgSrc}' alt='${name}'>` : '-';
           const mod = i['resolved_hit_modifier'] || '-';
           return `<tr class="clickable" onclick="openShopModal('${sheet}','${encodeURIComponent(name)}')"><td>${name}</td><td>${img}</td><td>${mod}</td><td>${money(i['prix unitaire (crédit)'])}</td><td>${money(i['poid unitaire(kg)'])}</td><td>${i.description || ''}</td><td><input id="buy-${sheet}-${name.replace(/\s+/g,'_')}" type="number" value="1" onclick="event.stopPropagation()" style="width:70px"><button onclick="event.stopPropagation(); buyEncoded('${sheet}','${encodeURIComponent(name)}')">Acheter</button></td></tr>`;
         }).join('')}
@@ -208,17 +216,40 @@ window.openEditModal = () => {
   if (!it) return;
   const baseFields = [['description','Description'],['effet(optionel)','Effet'],['poid unitaire (kg)','Poids unitaire'],['Prix unitaire (en crédit)','Valeur unitaire'],['Quantité','Quantité'],['Range (ft)','Range'],['Hit','Hit'],['Damage','Damage'],['bonus Armor class','Armor class']];
   const fields = assignTypePending ? baseFields : [['type','Type (item/arme/equipement)'], ...baseFields];
-  document.getElementById('edit-form').innerHTML = fields.map(([k,l]) => `<label>${l}<input id='edit-${k.replace(/[^a-zA-Z0-9]/g,'_')}' value="${clean(assignTypePending && k==='type' ? assignTypePending : it[k]).replace(/"/g,'&quot;')}"></label>`).join('');
+  const html = fields.map(([k,l]) => `<label>${l}<input id='edit-${k.replace(/[^a-zA-Z0-9]/g,'_')}' value="${clean(assignTypePending && k==='type' ? assignTypePending : it[k]).replace(/"/g,'&quot;')}"></label>`);
+
+  if (assignTypePending === 'arme') {
+    const statNames = (state?.stats?.stats || []).map(st => st.name);
+    const currentHit = clean(it.Hit).trim();
+    const currentHitStat = clean(it['Hit Stat']).trim() || (!isNumeric(currentHit) ? currentHit : '');
+    const options = [`<option value=''>-</option>`, ...statNames.map(st => `<option value="${st.replace(/"/g,'&quot;')}" ${currentHitStat.toLowerCase() === st.toLowerCase() ? 'selected' : ''}>${st}</option>`)].join('');
+    const specializedChecked = it['Hit Specialized'] === '1' ? 'checked' : '';
+    html.push(`<label>Stat de Hit<select id='edit-Hit_Stat'>${options}</select></label>`);
+    html.push(`<label><input id='edit-Hit_Specialized' type='checkbox' ${specializedChecked}> Spécialisation arme (+2 hit)</label>`);
+  }
+
+  document.getElementById('edit-form').innerHTML = html.join('');
   document.getElementById('edit-modal').showModal();
 };
 
 window.saveEditModal = async () => {
   const fields = ['type','description','effet(optionel)','poid unitaire (kg)','Prix unitaire (en crédit)','Quantité','Range (ft)','Hit','Damage','bonus Armor class'];
-  const payload = { action: 'update_item', id: modalInventoryId };
+  const payload = { action: assignTypePending ? 'assign_type' : 'update_item', id: modalInventoryId };
   fields.forEach(k => {
     const el = document.getElementById(`edit-${k.replace(/[^a-zA-Z0-9]/g,'_')}`);
     if (el) payload[k] = el.value;
   });
+
+  if (assignTypePending) {
+    payload.type = assignTypePending;
+    if (assignTypePending === 'arme') {
+      const hitStatEl = document.getElementById('edit-Hit_Stat');
+      const hitSpecializedEl = document.getElementById('edit-Hit_Specialized');
+      payload['Hit Stat'] = hitStatEl ? hitStatEl.value : '';
+      payload['Hit Specialized'] = hitSpecializedEl && hitSpecializedEl.checked ? '1' : '0';
+    }
+  }
+
   payload.source = 'modal';
   await apiAction(payload);
   assignTypePending = null;
@@ -236,8 +267,7 @@ window.openShopModal = (sheet, encodedName) => {
   if (!item) return;
   modalShopRef = { sheet, name, price: Number(item['prix unitaire (crédit)'] || 0) };
   modalInventoryId = null;
-  const imgVal = clean(item.resolved_image || item.image);
-  const imgSrc = (!imgVal || imgVal === '#VALUE!' || imgVal === '#N/A') ? '' : (imgVal.startsWith('http') ? imgVal : (imgVal.startsWith('image/') ? '/' + imgVal : (imgVal.includes('/') ? '/' + imgVal.replace(/^\/+/, '') : '/image/' + imgVal)));
+  const imgSrc = resolveImageSrc(item.resolved_image || item.image);
   const imgHtml = imgSrc ? `<img class='shop-preview' src='${imgSrc}' alt='${name}'>` : '';
   const details = [['Description', item.description], ['Effet', item.effet], ['Poids unitaire', item['poid unitaire(kg)']], ['Modificateur', item['resolved_hit_modifier']], ['Range', item['Range (ft)']], ['Hit', item.Hit], ['Damage', item.Damage], ['Armor class', item['bonus armor class']]].filter(([,v]) => isFilled(v)).map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('') || '<li>Aucune donnée.</li>';
   document.getElementById('modal-title').textContent = `Magasin - ${name}`;
