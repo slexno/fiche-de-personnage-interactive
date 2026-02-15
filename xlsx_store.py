@@ -318,6 +318,7 @@ class CharacterAppStore:
 
     def apply_action(self, payload: dict):
         action = payload.get("action")
+        feedback = {"ok": True}
         if action == "update_stat":
             self._update_stat(payload)
         elif action == "toggle_skill":
@@ -331,7 +332,7 @@ class CharacterAppStore:
         elif action == "toggle_equip":
             self._toggle_equip(payload)
         elif action == "buy":
-            self._buy(payload)
+            feedback = self._buy(payload)
         elif action == "sell":
             self._sell(payload)
         elif action == "sort":
@@ -342,7 +343,7 @@ class CharacterAppStore:
         self._sync_derived_tables()
         XlsxMini.save(self.char)
         XlsxMini.save(self.inv)
-        return {"ok": True, "state": self.build_state()}
+        return {**feedback, "state": self.build_state()}
 
     def _find_stat_row(self, name: str):
         return next((r for r in self.char.sheets["Feuil1"] if r.get("Statistiques") == name), None)
@@ -460,12 +461,13 @@ class CharacterAppStore:
         qty = max(1, int(payload.get("qty", 1)))
         row = next((r for r in self.shop.sheets[sheet] if r.get("nom de l'objet") == name), None)
         if not row:
-            return
+            return {"ok": False, "error": "Objet introuvable"}
         price = float(row.get("prix unitaire (crédit)", 0) or 0)
         total = price * qty
         credits = self._credits()
         if credits < total:
-            return
+            missing = round(total - credits, 2)
+            return {"ok": False, "error": "Fonds insuffisants", "missing_credits": missing}
         self._set_credits(credits - total)
         item = {
             "Objet": name,
@@ -480,6 +482,7 @@ class CharacterAppStore:
             "effet(optionel)": row.get("effet", "ho le nul il a pas d'effets"),
         }
         self._add_item({"item": item})
+        return {"ok": True}
 
     def _sell(self, payload):
         item = self._find_item(payload["id"])

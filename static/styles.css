@@ -56,3 +56,7 @@ tr.clickable:hover { background: rgba(90,169,255,.1); }
 .credit-badge { margin-left:auto; background:#0b3b2f; border:1px solid #1d6a54; padding:6px 12px; border-radius:999px; font-weight:700; }
 .modal ul { margin: 0 0 12px 0; padding-left: 18px; }
 .modal li { margin-bottom: 6px; }
+
+.shop-preview { max-width: 220px; max-height: 220px; border-radius: 12px; border: 1px solid var(--border); display:block; margin-bottom:10px; }
+.modal p { margin: 0 0 10px 0; }
+.table-wrap input { max-width: 110px; }
