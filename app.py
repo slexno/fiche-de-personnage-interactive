@@ -47,24 +47,27 @@ class AppHandler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def run_server(preferred_port: int = 8000):
+def run_server(preferred_port: int = 80):
     tried = []
-    for port in [preferred_port, 8080, 5000, 8001, 8888]:
+    for port in [preferred_port, 80, 8000, 8080, 5000, 8001, 8888]:
         if port in tried:
             continue
         tried.append(port)
         try:
             server = ThreadingHTTPServer(("0.0.0.0", port), AppHandler)
-            print(f"Serveur démarré sur http://localhost:{port}")
+            if port == 80:
+                print("Serveur démarré sur http://localhost")
+            else:
+                print(f"Serveur démarré sur http://localhost:{port}")
             server.serve_forever()
             return
         except OSError:
             continue
-    raise OSError("Impossible de démarrer le serveur: ports 8000/8080/5000/8001/8888 indisponibles")
+    raise OSError("Impossible de démarrer le serveur: ports 80/8000/8080/5000/8001/8888 indisponibles")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fiche de personnage interactive")
-    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")), help="Port HTTP")
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "80")), help="Port HTTP (80 par défaut)")
     args = parser.parse_args()
     run_server(args.port)

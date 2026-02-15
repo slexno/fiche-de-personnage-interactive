@@ -8,7 +8,7 @@ Application Python + interface HTML pour gérer une fiche de personnage inspiré
 python app.py
 ```
 
-Puis ouvrir `http://localhost:8000` (ou `http://localhost:8080` si le port 8000 est déjà utilisé).
+Puis ouvrir `http://localhost` (port 80). Si le port 80 est indisponible, l'application bascule automatiquement vers `http://localhost:8000` puis `http://localhost:8080`.
 
 ## Fonctionnalités implémentées
 
@@ -20,4 +20,4 @@ Puis ouvrir `http://localhost:8000` (ou `http://localhost:8080` si le port 8000 
 - Synchronisation des changements vers les fichiers Excel (`caracteristique.xlsx`, `inventaire.xlsx`, `magasin.xlsx`).
 
 
-> Si vous tapez seulement `http://localhost` sans port, le navigateur essaie le port 80 et vous aurez "connexion refusée".
+> Astuce: regardez le message affiché au démarrage, il indique l'URL exacte réellement utilisée.
