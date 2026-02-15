@@ -63,3 +63,6 @@ tr.clickable:hover { background: rgba(90,169,255,.1); }
 
 .edit-grid { display:grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap:10px; margin-bottom:12px; }
 .edit-grid label { display:flex; flex-direction:column; gap:4px; color:var(--muted); }
+
+.link-btn { background: transparent; border: 0; color: #8bc3ff; text-decoration: underline; padding: 0; }
+.link-btn:hover { color: #b6daff; }

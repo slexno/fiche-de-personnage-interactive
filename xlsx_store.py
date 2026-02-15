@@ -295,7 +295,7 @@ class CharacterAppStore:
         return sum(float(i.get("Poid (kg)", "0") or 0) for i in self.inv.sheets["sac à dos"] if i.get("type") != "currency")
 
     def _build_inventory(self):
-        bag = self.inv.sheets["sac à dos"]
+        bag = [i for i in self.inv.sheets["sac à dos"] if i.get("type") != "currency"]
         chest = self.inv.sheets["coffre"]
         weapons = [i for i in bag if i.get("type") == "arme"]
         equipments = [i for i in bag if i.get("type") == "equipement"]
@@ -339,6 +339,8 @@ class CharacterAppStore:
             self._sort(payload)
         elif action == "update_item":
             self._update_item(payload)
+        elif action == "update_credits":
+            self._set_credits(float(payload.get("credits", 0) or 0))
 
         self._sync_derived_tables()
         XlsxMini.save(self.char)
