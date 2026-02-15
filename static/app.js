@@ -136,8 +136,8 @@ const renderInventory = () => {
 
       <h3>Équipements équipés</h3>
       <div class="table-wrap"><table>
-        <tr><th>Nom</th><th>Armor class</th><th>Effet</th><th>Action</th></tr>
-        ${equippedEquipments.map(e => `<tr><td>${nameCell(e.id, e.Objet)}</td><td>${e['bonus Armor class'] || '0'}</td><td>${e['effet(optionel)'] || '-'}</td><td><button onclick="unequipItem('${e.id}')">Déséquiper</button></td></tr>`).join('') || '<tr><td colspan="4">Aucun équipement équipé</td></tr>'}
+        <tr><th>Nom</th><th>Bonus d'armor class</th><th>Effet</th><th>Action</th></tr>
+        ${equippedEquipments.map(e => { const acBonus = Number(e['bonus Armor class'] || 0); const acDisplay = `${acBonus >= 0 ? '+' : ''}${acBonus}`; return `<tr><td>${nameCell(e.id, e.Objet)}</td><td>${acDisplay}</td><td>${e['effet(optionel)'] || '-'}</td><td><button onclick="unequipItem('${e.id}')">Déséquiper</button></td></tr>`; }).join('') || '<tr><td colspan="4">Aucun équipement équipé</td></tr>'}
       </table></div>
     </div>
   </div>`;
