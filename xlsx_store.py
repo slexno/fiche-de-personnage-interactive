@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import unicodedata
 import re
 import uuid
 import zipfile
@@ -205,42 +204,10 @@ class XlsxMini:
 
 class CharacterAppStore:
     def __init__(self, root: Path):
-        self.root = root
         self.char = XlsxMini.load(root / "caracteristique.xlsx")
         self.inv = XlsxMini.load(root / "inventaire.xlsx")
         self.shop = XlsxMini.load(root / "magasin.xlsx")
-        self._enrich_shop_images()
         self._normalize_inventory()
-
-    @staticmethod
-    def _slug(value: str) -> str:
-        txt = unicodedata.normalize("NFKD", value or "").encode("ascii", "ignore").decode("ascii")
-        txt = txt.lower()
-        out = []
-        for ch in txt:
-            out.append(ch if ch.isalnum() else " ")
-        return " ".join("".join(out).split())
-
-    def _enrich_shop_images(self):
-        image_dir = self.root / "image"
-        files = []
-        if image_dir.exists():
-            files = [f for f in image_dir.iterdir() if f.is_file()]
-        by_slug = {self._slug(f.stem): f"image/{f.name}" for f in files}
-
-        for sheet_rows in self.shop.sheets.values():
-            for row in sheet_rows:
-                raw = str(row.get("image", "") or "").strip()
-                resolved = ""
-                if raw and raw not in {"#VALUE!", "#N/A"}:
-                    if raw.startswith("http") or raw.startswith("image/"):
-                        resolved = raw
-                    else:
-                        resolved = f"image/{raw}"
-                if not resolved:
-                    key = self._slug(row.get("nom de l'objet", ""))
-                    resolved = by_slug.get(key, "")
-                row["resolved_image"] = resolved
 
     def _normalize_inventory(self):
         for bucket in ["sac à dos", "coffre"]:

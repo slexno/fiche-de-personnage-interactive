@@ -140,11 +140,10 @@ const renderShop = () => {
   const sections = Object.entries(state.shop).map(([sheet, items]) => `
     <div class="panel"><div class="row"><h3>${sheet}</h3><span class="credit-badge">💳 Crédits: ${money(state.inventory.credits)}</span></div>
       <div class="table-wrap"><table>
-        <tr><th>Objet</th><th>Image</th><th>Prix</th><th>Poids</th><th>Description</th><th>Achat</th></tr>
+        <tr><th>Objet</th><th>Prix</th><th>Poids</th><th>Description</th><th>Achat</th></tr>
         ${items.map(i => {
           const name = i["nom de l'objet"] || '';
-          const img = i['resolved_image'] ? `<img class='shop-thumb' src='/${i['resolved_image']}' alt='${name}'>` : '-';
-          return `<tr class="clickable" onclick="openShopModal('${sheet}','${encodeURIComponent(name)}')"><td>${name}</td><td>${img}</td><td>${money(i['prix unitaire (crédit)'])}</td><td>${money(i['poid unitaire(kg)'])}</td><td>${i.description || ''}</td><td><input id="buy-${sheet}-${name.replace(/\s+/g,'_')}" type="number" value="1" onclick="event.stopPropagation()" style="width:70px"><button onclick="event.stopPropagation(); buy('${sheet}',\`${name}\`)">Acheter</button></td></tr>`;
+          return `<tr class="clickable" onclick="openShopModal('${sheet}','${encodeURIComponent(name)}')"><td>${name}</td><td>${money(i['prix unitaire (crédit)'])}</td><td>${money(i['poid unitaire(kg)'])}</td><td>${i.description || ''}</td><td><input id="buy-${sheet}-${name.replace(/\s+/g,'_')}" type="number" value="1" onclick="event.stopPropagation()" style="width:70px"><button onclick="event.stopPropagation(); buy('${sheet}',\`${name}\`)">Acheter</button></td></tr>`;
         }).join('')}
       </table></div>
     </div>`).join('');
@@ -233,8 +232,8 @@ window.openShopModal = (sheet, encodedName) => {
   if (!item) return;
   modalShopRef = { sheet, name, price: Number(item['prix unitaire (crédit)'] || 0) };
   modalInventoryId = null;
-  const imgVal = clean(item.resolved_image || item.image);
-  const imgSrc = (!imgVal || imgVal === '#VALUE!' || imgVal === '#N/A') ? '' : (imgVal.startsWith('http') ? imgVal : (imgVal.startsWith('image/') ? '/' + imgVal : (imgVal.includes('/') ? '/' + imgVal.replace(/^\/+/, '') : '/image/' + imgVal)));
+  const imgVal = clean(item.image);
+  const imgSrc = (!imgVal || imgVal === '#VALUE!') ? '' : (imgVal.startsWith('http') ? imgVal : (imgVal.includes('/') ? '/' + imgVal.replace(/^\/+/, '') : '/image/' + imgVal));
   const imgHtml = imgSrc ? `<img class='shop-preview' src='${imgSrc}' alt='${name}'>` : '';
   const details = [['Description', item.description], ['Effet', item.effet], ['Poids unitaire', item['poid unitaire(kg)']], ['Range', item['Range (ft)']], ['Hit', item.Hit], ['Damage', item.Damage], ['Armor class', item['bonus armor class']]].filter(([,v]) => isFilled(v)).map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('') || '<li>Aucune donnée.</li>';
   document.getElementById('modal-title').textContent = `Magasin - ${name}`;
