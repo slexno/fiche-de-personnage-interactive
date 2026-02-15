@@ -215,7 +215,8 @@ window.openEditModal = () => {
   const it = getInventoryItem(modalInventoryId);
   if (!it) return;
   const baseFields = [['description','Description'],['effet(optionel)','Effet'],['poid unitaire (kg)','Poids unitaire'],['Prix unitaire (en crédit)','Valeur unitaire'],['Quantité','Quantité'],['Range (ft)','Range'],['Hit','Hit'],['Damage','Damage'],['bonus Armor class','Armor class']];
-  const fields = assignTypePending ? baseFields : [['type','Type (item/arme/equipement)'], ...baseFields];
+  const assignFields = assignTypePending === 'arme' ? baseFields.filter(([k]) => k !== 'Hit') : baseFields;
+  const fields = assignTypePending ? assignFields : [['type','Type (item/arme/equipement)'], ...baseFields];
   const html = fields.map(([k,l]) => `<label>${l}<input id='edit-${k.replace(/[^a-zA-Z0-9]/g,'_')}' value="${clean(assignTypePending && k==='type' ? assignTypePending : it[k]).replace(/"/g,'&quot;')}"></label>`);
 
   if (assignTypePending === 'arme') {
