@@ -215,6 +215,25 @@ class CharacterAppStore:
                 item.setdefault("id", str(uuid.uuid4()))
                 item.setdefault("type", "item")
                 item.setdefault("equiped", "0")
+        weapon_map = {w.get("Armes", "").strip().lower(): w for w in self.inv.sheets.get("armes", []) if w.get("Armes")}
+        equip_map = {e.get("Equipement", "").strip().lower(): e for e in self.inv.sheets.get("equipement", []) if e.get("Equipement")}
+
+        for bucket in ["sac à dos", "coffre"]:
+            for item in self.inv.sheets.get(bucket, []):
+                name = item.get("Objet", "").strip().lower()
+                if name in weapon_map:
+                    item["type"] = "arme"
+                    row = weapon_map[name]
+                    item["Range (ft)"] = row.get("Range (ft)", item.get("Range (ft)", ""))
+                    item["Hit"] = row.get("Hit", item.get("Hit", ""))
+                    item["Damage"] = row.get("Damage", item.get("Damage", ""))
+                    item["description"] = item.get("description") or row.get("description", "")
+                if name in equip_map:
+                    item["type"] = "equipement"
+                    row = equip_map[name]
+                    item["bonus Armor class"] = row.get("bonus Armor class", item.get("bonus Armor class", "0"))
+                    item["effet(optionel)"] = row.get("effet(optionel)", item.get("effet(optionel)", "ho le nul il a pas d'effets"))
+                    item["description"] = item.get("description") or row.get("description", "")
         if not any(i.get("Objet", "").lower() == "crédits" for i in self.inv.sheets["sac à dos"]):
             self.inv.sheets["sac à dos"].append(
                 {
@@ -317,6 +336,8 @@ class CharacterAppStore:
             self._sell(payload)
         elif action == "sort":
             self._sort(payload)
+        elif action == "update_item":
+            self._update_item(payload)
 
         self._sync_derived_tables()
         XlsxMini.save(self.char)
@@ -469,6 +490,26 @@ class CharacterAppStore:
             item["Valeur (en crédit)"] = str(left * price)
             unit_w = float(item.get("poid unitaire (kg)", 0) or 0)
             item["Poid (kg)"] = str(left * unit_w)
+
+    def _update_item(self, payload):
+        item = self._find_item(payload["id"])
+        if not item:
+            return
+        allowed = [
+            "description",
+            "effet(optionel)",
+            "poid unitaire (kg)",
+            "Prix unitaire (en crédit)",
+            "Quantité",
+            "Range (ft)",
+            "Hit",
+            "Damage",
+            "bonus Armor class",
+            "type",
+        ]
+        for key in allowed:
+            if key in payload:
+                item[key] = str(payload[key])
 
     def _sort(self, payload):
         key = payload["key"]

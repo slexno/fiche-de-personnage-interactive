@@ -52,3 +52,7 @@ tr.clickable:hover { background: rgba(90,169,255,.1); }
 .modal::backdrop { background: rgba(0,0,0,.55); backdrop-filter: blur(2px); }
 .modal article { padding: 16px; }
 .modal pre { white-space: pre-wrap; background: #0c1017; border-radius: 12px; padding: 12px; }
+
+.credit-badge { margin-left:auto; background:#0b3b2f; border:1px solid #1d6a54; padding:6px 12px; border-radius:999px; font-weight:700; }
+.modal ul { margin: 0 0 12px 0; padding-left: 18px; }
+.modal li { margin-bottom: 6px; }
