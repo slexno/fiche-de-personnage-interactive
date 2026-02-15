@@ -119,8 +119,13 @@ const renderInventory = () => {
           <input id="n" placeholder="Nom"/>
           <input id="pu" type="number" step="0.1" placeholder="Prix unitaire"/>
           <input id="wu" type="number" step="0.1" placeholder="Poids unitaire"/>
-          <input id="q" type="number" value="1"/>
+          <input id="q" type="number" value="1" placeholder="Quantité"/>
           <input id="d" placeholder="Description" style="min-width:220px"/>
+          <input id="range" placeholder="Range (ft)" style="width:110px"/>
+          <input id="hit" placeholder="Hit" style="width:90px"/>
+          <input id="damage" placeholder="Damage" style="width:100px"/>
+          <input id="ac" placeholder="Armor class" style="width:120px"/>
+          <input id="effet" placeholder="Effet" style="min-width:180px"/>
           <button onclick="addItem()">Ajouter</button>
         </div>
       </div>
@@ -196,6 +201,11 @@ window.addItem = () => apiAction({
     'poid unitaire (kg)': document.getElementById('wu').value,
     Quantité: document.getElementById('q').value,
     description: document.getElementById('d').value,
+    'Range (ft)': document.getElementById('range').value,
+    Hit: document.getElementById('hit').value,
+    Damage: document.getElementById('damage').value,
+    'bonus Armor class': document.getElementById('ac').value,
+    'effet(optionel)': document.getElementById('effet').value,
   }
 });
 window.transferQty = (from, to, id) => {

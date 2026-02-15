@@ -4,7 +4,7 @@ import json
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from xlsx_store import CharacterAppStore
 
@@ -13,6 +13,9 @@ ROOT = Path(__file__).parent
 
 class AppHandler(SimpleHTTPRequestHandler):
     store = CharacterAppStore(ROOT)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def do_GET(self):
         parsed = urlparse(self.path)

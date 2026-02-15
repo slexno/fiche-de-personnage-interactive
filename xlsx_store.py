@@ -362,8 +362,17 @@ class CharacterAppStore:
     def _add_item(self, payload):
         item = payload["item"]
         item.setdefault("id", str(uuid.uuid4()))
-        item.setdefault("type", "item")
         item.setdefault("equiped", "0")
+
+        if item.get("type") in {"arme", "equipement", "item", "currency"}:
+            pass
+        elif str(item.get("Range (ft)", "")).strip() or str(item.get("Hit", "")).strip() or str(item.get("Damage", "")).strip():
+            item["type"] = "arme"
+        elif str(item.get("bonus Armor class", "")).strip() or str(item.get("effet(optionel)", "")).strip():
+            item["type"] = "equipement"
+        else:
+            item["type"] = "item"
+
         qty = float(item.get("Quantité", 1) or 1)
         pu = float(item.get("Prix unitaire (en crédit)", 0) or 0)
         wt = float(item.get("poid unitaire (kg)", 0) or 0)
