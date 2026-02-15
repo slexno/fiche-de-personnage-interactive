@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fiche de personnage interactive</title>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+  <div class="container">
+    <h1>Fiche de personnage interactive</h1>
+    <div class="tabs">
+      <button data-tab="stats" class="active">Statistiques</button>
+      <button data-tab="inventory">Inventaire</button>
+      <button data-tab="shop">Magasin</button>
+    </div>
+
+    <section id="stats" class="tab active"></section>
+    <section id="inventory" class="tab"></section>
+    <section id="shop" class="tab"></section>
+  </div>
+
+  <dialog id="item-modal" class="modal">
+    <article>
+      <h3 id="modal-title">Détails</h3>
+      <pre id="modal-body"></pre>
+      <button onclick="closeModal()">Fermer</button>
+    </article>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
