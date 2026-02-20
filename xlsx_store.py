@@ -465,7 +465,7 @@ class CharacterAppStore:
         if action == "update_stat": self._update_stat(payload)
         elif action == "toggle_skill": self._toggle_skill(payload)
         elif action == "toggle_expertise": self._toggle_expertise(payload)
-        elif action == "add_item": self._add_item(payload)
+        elif action == "add_item": feedback = self._add_item(payload)
         elif action == "transfer_item": self._transfer(payload)
         elif action == "assign_type": self._assign_type(payload)
         elif action == "toggle_equip": self._toggle_equip(payload)
@@ -498,7 +498,16 @@ class CharacterAppStore:
                 r["Expertise"] = "1" if payload.get("expertise") else "0"
 
     def _add_item(self, payload):
-        item = dict(payload["item"])
+        item = dict(payload.get("item", {}))
+        name = str(item.get("Objet", "")).strip()
+        raw_price = str(item.get("Prix unitaire (en crédit)", "")).strip()
+        if not name:
+            return {"ok": False, "error": "Le nom de l'objet est obligatoire."}
+        if raw_price == "" or not re.fullmatch(r"-?\d+(\.\d+)?", raw_price):
+            return {"ok": False, "error": "Le prix unitaire est obligatoire et doit être un nombre."}
+
+        item["Objet"] = name
+        item["Prix unitaire (en crédit)"] = raw_price
         item.setdefault("id", str(uuid.uuid4()))
         item.setdefault("equiped", "0")
         if item.get("type") not in {"arme", "equipement", "item", "currency"}:
@@ -509,6 +518,7 @@ class CharacterAppStore:
             else:
                 item["type"] = "item"
         self._stack_into("sac à dos", item)
+        return {"ok": True}
 
     def _transfer(self, payload):
         src = self.inv.sheets[payload["from"]]

@@ -27,6 +27,9 @@ const apiAction = async (payload) => {
   if (json.ok === false && payload.action === 'buy') {
     showAlertModal(`Fonds insuffisants. Il vous manque ${money(json.missing_credits || 0)} crédits.`);
   }
+  if (json.ok === false && payload.action === 'add_item') {
+    showAlertModal(json.error || 'Veuillez renseigner un nom et un prix valide.');
+  }
 
   state = json.state;
   render();
@@ -175,18 +178,30 @@ window.buy = (sheet, name, qty=null) => {
   return apiAction({ action: 'buy', sheet, name, qty: val });
 };
 window.buyEncoded = (sheet, encodedName) => window.buy(sheet, decodeURIComponent(encodedName));
-window.addItem = () => apiAction({ action: 'add_item', item: {
-  Objet: document.getElementById('n').value,
-  'Prix unitaire (en crédit)': document.getElementById('pu').value,
-  'poid unitaire (kg)': document.getElementById('wu').value,
-  Quantité: document.getElementById('q').value,
-  description: document.getElementById('d').value,
-  'Range (ft)': document.getElementById('range').value,
-  Hit: document.getElementById('hit').value,
-  Damage: document.getElementById('damage').value,
-  'bonus Armor class': document.getElementById('ac').value,
-  'effet(optionel)': document.getElementById('effet').value,
-}});
+window.addItem = () => {
+  const name = document.getElementById('n').value.trim();
+  const unitPrice = document.getElementById('pu').value.trim();
+  if (!name) {
+    showAlertModal('Le nom de l'objet est obligatoire.');
+    return Promise.resolve({ ok: false });
+  }
+  if (!unitPrice || Number.isNaN(Number(unitPrice))) {
+    showAlertModal('Le prix unitaire est obligatoire et doit être un nombre.');
+    return Promise.resolve({ ok: false });
+  }
+  return apiAction({ action: 'add_item', item: {
+    Objet: name,
+    'Prix unitaire (en crédit)': unitPrice,
+    'poid unitaire (kg)': document.getElementById('wu').value,
+    Quantité: document.getElementById('q').value,
+    description: document.getElementById('d').value,
+    'Range (ft)': document.getElementById('range').value,
+    Hit: document.getElementById('hit').value,
+    Damage: document.getElementById('damage').value,
+    'bonus Armor class': document.getElementById('ac').value,
+    'effet(optionel)': document.getElementById('effet').value,
+  }});
+};
 
 window.openInventoryModal = (id) => {
   const it = getInventoryItem(id);
