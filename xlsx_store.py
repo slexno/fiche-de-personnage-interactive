@@ -283,6 +283,7 @@ class CharacterAppStore:
         self.shop = XlsxMini.load(root / "magasin.xlsx")
         self._enrich_shop_images()
         self._normalize_inventory()
+        self._ensure_hp_row()
         self.skill_branches, self.skill_by_id = self._build_skill_catalog()
         self._init_skill_tree()
 
@@ -428,6 +429,19 @@ class CharacterAppStore:
             c["Valeur (en crédit)"] = str(round(value, 2))
             c["Prix unitaire (en crédit)"] = c["Valeur (en crédit)"]
 
+    def _ensure_hp_row(self):
+        row = next((r for r in self.char.sheets["Feuil1"] if self._normalize_key(r.get("Statistiques")) == "pv"), None)
+        if row is None:
+            self.char.sheets["Feuil1"].append({
+                "Statistiques": "PV",
+                "Score": "10",
+                "Bonus": "0",
+                "Competence": "",
+                "Modificateur": "",
+                "Spécialisation": "0",
+                "Expertise": "0",
+            })
+
     def _build_skill_catalog(self):
         branches = []
         by_id = {}
@@ -559,7 +573,7 @@ class CharacterAppStore:
         by_name = {}
         for r in self.char.sheets.get("Feuil1", []):
             if r.get("Statistiques"):
-                if self._normalize_key(r.get("Statistiques")) == "niveau":
+                if self._normalize_key(r.get("Statistiques")) in {"niveau", "pv"}:
                     continue
                 score = int(self._to_float(r.get("Score", 10), 10))
                 raw_bonus = math.floor((score - 10) / 2)
@@ -588,6 +602,17 @@ class CharacterAppStore:
         spec = 2 if self._truthy(item.get("Hit Specialized", 0)) else 0
         return str(int(base + stat_bonus + spec))
 
+    def _skill_modifier_override(self, skill_name: str):
+        overrides = {
+            "armement": "dex",
+            "survie": "con",
+        }
+        return overrides.get(self._normalize_key(skill_name), "")
+
+    def _hp_row(self):
+        self._ensure_hp_row()
+        return next((r for r in self.char.sheets["Feuil1"] if self._normalize_key(r.get("Statistiques")) == "pv"), None)
+
     def _build_stats(self):
         stats, effective, max_carry, dex_penalty = self._compute_stats_context()
         skills = []
@@ -596,10 +621,12 @@ class CharacterAppStore:
                 continue
             specialized = self._truthy(r.get("Spécialisation", "0"))
             expertise = self._truthy(r.get("Expertise", "0"))
-            mod = str(r.get("Modificateur", ""))
+            skill_name = str(r.get("Competence", ""))
+            override = self._skill_modifier_override(skill_name)
+            mod = override or str(r.get("Modificateur", ""))
             stat_mod_bonus = self._find_stat_bonus(effective, mod)
             skills.append({
-                "name": r.get("Competence"),
+                "name": skill_name,
                 "mod": self._display_stat_name(mod) if mod else mod,
                 "bonus": stat_mod_bonus + (2 if specialized else 0) + (2 if expertise else 0),
                 "specialized": specialized,
@@ -609,12 +636,16 @@ class CharacterAppStore:
         dex_bonus = next((s["bonus"] for s in stats if self._canonical_stat_key(s["name"]) == "dex"), 0)
         ac_bonus = sum(int(self._to_float(i.get("bonus Armor class", "0"), 0)) for i in self.inv.sheets["sac à dos"] if i.get("type") == "equipement" and i.get("equiped") == "1")
         armor_class = 9 + ac_bonus + dex_bonus
+        hp_row = self._hp_row() or {}
+        con_bonus = next((s["bonus"] for s in stats if self._canonical_stat_key(s["name"]) == "con"), 0)
+        hp_value = int(self._to_float(hp_row.get("Score", 10), 10))
         return {
             "stats": [{"name": self._display_stat_name(s["name"]), "score": s["score"], "bonus": s["bonus"]} for s in stats],
             "skills": skills,
             "armor_class": armor_class,
             "max_carry": max_carry,
             "dex_penalty": dex_penalty,
+            "hp": {"value": hp_value, "con_bonus": con_bonus},
         }
 
     def _item_stack_key(self, i: dict):
@@ -683,6 +714,7 @@ class CharacterAppStore:
         elif action == "update_credits": self._set_credits(self._to_float(payload.get("credits", 0)))
         elif action == "add_skill_xp": self._add_skill_xp(payload)
         elif action == "buy_skill_tree": feedback = self._buy_skill_tree(payload)
+        elif action == "update_hp": self._update_hp(payload)
 
         self._sync_derived_tables()
         XlsxMini.save(self.char)
@@ -733,6 +765,16 @@ class CharacterAppStore:
         row["Points compétences"] = str(points - target["cost"])
         row[key] = "1"
         return {"ok": True}
+
+    def _update_hp(self, payload):
+        hp_row = self._hp_row()
+        if not hp_row:
+            return
+        try:
+            hp_value = int(float(payload.get("value", 0)))
+        except Exception:
+            hp_value = 0
+        hp_row["Score"] = str(max(0, hp_value))
 
     def _update_stat(self, payload):
         for r in self.char.sheets["Feuil1"]:

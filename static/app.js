@@ -83,6 +83,7 @@ const renderStats = () => {
           ${s.stats.map(st => `<tr><td>${st.name}</td><td><input type="number" min="1" max="20" value="${st.score}" onchange="updateStat('${st.name}', this.value)"></td><td>${st.bonus >= 0 ? '+' : ''}${st.bonus}</td></tr>`).join('')}
         </table></div>
         <p><strong>Armor class :</strong> ${s.armor_class}</p>
+        <div class="row"><strong>PV :</strong> <input type="number" min="0" value="${s.hp?.value ?? 0}" onchange="updateHp(this.value)" style="width:120px"> <span class="small">Modificateur constitution: ${(s.hp?.con_bonus ?? 0) >= 0 ? '+' : ""}${s.hp?.con_bonus ?? 0}</span></div>
       </div>
       <div class="panel">
         <h2>Compétences</h2>
@@ -219,6 +220,7 @@ const renderSkills = () => {
 const getInventoryItem = (id) => [...state.inventory.bag, ...state.inventory.chest].find(x => x.id === id);
 
 window.updateStat = (name, score) => apiAction({ action: 'update_stat', name, score });
+window.updateHp = (value) => apiAction({ action: 'update_hp', value });
 window.toggleSkill = (name, specialized) => apiAction({ action: 'toggle_skill', name, specialized });
 window.toggleExpertise = (name, expertise) => apiAction({ action: 'toggle_expertise', name, expertise });
 window.sortBag = (key) => apiAction({ action: 'sort', key, source: 'sac à dos' });
