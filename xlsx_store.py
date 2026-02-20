@@ -12,6 +12,78 @@ from xml.etree import ElementTree as ET
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
+SKILL_TREE_DEFINITIONS = [
+    {
+        "id": "engineering",
+        "name": "Compétences d'ingénierie",
+        "skills": [
+            {"id": "demineur", "name": "Démineur", "cost": 1, "description": "Permet de désamorcer des pièges (pour les ingénieurs cela se traduit par un jet avec avantage).", "requires": []},
+            {"id": "top_gun", "name": "Top Gun", "cost": 2, "description": "Vous permet de piloter tout types de véhicules.", "requires": ["demineur"]},
+            {"id": "goose", "name": "Goose", "cost": 2, "description": "Vous donnent accès au control des armes de vaisseaux (pour le soldat lui permet d’en contrôler 2 à la fois et pour le militaire fait ses jets d’attaque avec avantages).", "requires": ["top_gun"]},
+            {"id": "good_morning_vietnam", "name": "GOOOOOOOOOOD MORNING VIETNAM", "cost": 1, "description": "Donne la possibilité d’interagir pacifiquement avec les vaisseaux autours de vous (pour le marchand lui permet de faire du commerce).", "requires": ["top_gun"]},
+            {"id": "bob_bricoleur", "name": "Bob le bricoleur", "cost": 1, "description": "Donne la possibilité d’utiliser des outils d’ingénierie (fer à souder, pistolet à clous etc…) (pour les ingénieurs cela se traduit par un jet avec avantage).", "requires": ["demineur"]},
+            {"id": "boobies_trap", "name": "Boobies are a trap", "cost": 1, "description": "Vous êtes capables d’utiliser des pièges et des grenades (pour le militaire se traduit par une capacité à lancer les grenades 2 fois plus loin).", "requires": ["bob_bricoleur"]},
+            {"id": "making_is_fucking", "name": "Making is fucking", "cost": 3, "description": "Vous permet de combiner 2 ou 3 objets afin d’en faire une potentiel nouvelle arme (c’est au bon vouloir du DM aka moi).", "requires": ["boobies_trap"]},
+            {"id": "hacker", "name": "Hacker", "cost": 1, "description": "Donne accès à un terminal portable permettant d’hacker certains objets.", "requires": ["demineur"]},
+            {"id": "neuromancien", "name": "Neuromancien", "cost": 3, "description": "Grâce à une nouvelle puce révolutionnaires implanté dans votre cerveau, donne la possibilité de désorienté les ennemis équipés de systèmes internes, l’ennemie est stun pendant 1 tour.", "requires": ["hacker"]},
+            {"id": "bip_boup_gnie", "name": "Bip boup gnié", "cost": 1, "description": "Permet de casser à distance certains objets électroniques.", "requires": ["neuromancien"]},
+            {"id": "friendly_fire", "name": "Friendly Fire", "cost": 3, "description": "Prenez le contrôle de certaines machines automatiques et rendez les amicales.", "requires": ["bip_boup_gnie"]},
+            {"id": "brain_worm", "name": "Brain Worm", "cost": 3, "description": "Amélioration de la puce déjà implanté qui déstabilise encore plus le porteur et lui fait 1d4 de dégât et le fait tomber par terre.", "requires": ["neuromancien"]},
+            {"id": "storm_approaching", "name": "I am the storm that is approaching", "cost": 4, "description": "Sur une zone de 30ft applique Brain Worm à tous les ennemis.", "requires": ["brain_worm"]},
+            {"id": "blade_runner", "name": "Blade Runner", "cost": 4, "description": "Accélère votre cerveau et vous permet pendant 1 tours de tripler vos actions en 1 tours (utilisable qu’une seule fois par jour), rajoute +1 à la stat de dextérité.", "requires": ["neuromancien"]},
+            {"id": "jedi", "name": "JEDI", "cost": 2, "description": "Vous donne une spécialité avec les armes au CAC énergétiques.", "requires": ["blade_runner"]},
+        ],
+    },
+    {
+        "id": "physical",
+        "name": "Compétences physique",
+        "skills": [
+            {"id": "kung_fu_fighter", "name": "Kung fu fighter", "cost": 1, "description": "Rajoute 1 point à la stat de force.", "requires": []},
+            {"id": "gros_os", "name": "J’suis pas gros j’ai de gros os", "cost": 2, "description": "Augmente le bonus d’AC de tous vos habits (pas les casques).", "requires": ["kung_fu_fighter"]},
+            {"id": "leeroy_jenkins", "name": "LEEROY JENKINS", "cost": 2, "description": "Donne la capacité de faire une charge destructrice jusqu’à 60 pieds et fait 1d10 de dégât, renverse les ennemis impactés.", "requires": ["gros_os"]},
+            {"id": "sumo", "name": "Sumo", "cost": 2, "description": "Donne spécialité/expertise en athlétisme.", "requires": ["kung_fu_fighter"]},
+            {"id": "meticuleux", "name": "Méticuleux", "cost": 2, "description": "Ajoute +1 à la stat de dextérité", "requires": ["sumo"]},
+            {"id": "gymnaste", "name": "Gymnaste", "cost": 2, "description": "Donne spécialité/expertise en acrobatie.", "requires": ["sumo"]},
+            {"id": "ninja", "name": "Ninja", "cost": 2, "description": "Donne spécialité/expertise en discrétion.", "requires": ["kung_fu_fighter"]},
+            {"id": "shinobi", "name": "Shinobi", "cost": 2, "description": "Donne spécialité avec les armes de cac non énergétiques.", "requires": ["ninja"]},
+            {"id": "naruto_storm", "name": "Naruto shipuden ninja storm", "cost": 4, "description": "Vous donne la capacité de monter sur les murs courir dessus ou ne pas prendre de dégâts en tombant.", "requires": ["ninja"]},
+            {"id": "falcon_punch", "name": "Falcon punch", "cost": 4, "description": "Vous permet d’utiliser une arme unique (même le militaire n’y a pas acces) de cac faisant 6d4 de dégâts électriques.", "requires": ["naruto_storm"]},
+        ],
+    },
+    {
+        "id": "weapons",
+        "name": "Compétences d’armes",
+        "skills": [
+            {"id": "james_bond", "name": "My name is bond James bond", "cost": 1, "description": "Donne la possibilité d’utiliser des pistolets et armes légères, spécialité si déjà la possibilité.", "requires": []},
+            {"id": "sniper", "name": "Sniper", "cost": 2, "description": "Vous donne la possibilité d’utiliser des sniper (donne une spécialité pour le militaire).", "requires": ["james_bond"]},
+            {"id": "33_millions", "name": "33 millions de joules", "cost": 3, "description": "Vous donne la possibilité d’utiliser des armes de type railgun (pour le militaire ne donne pas de bonus).", "requires": ["sniper"]},
+            {"id": "why_talking", "name": "Why is he talking", "cost": 1, "description": "Oula c’est misterieux.", "requires": ["33_millions"]},
+            {"id": "ultrakill", "name": "OMG C’EST ULTRAKILL", "cost": 2, "description": "Vous pouvez lancer une pièce dans les airs pour tenter de la toucher et automatiquement faire un critique à un ennemi aléatoire (si vous êtes un Gambler vous pouvez toucher 2 ennemis et si vous etes marchand si vous le réussissez vous gagner 5 crédits).", "requires": ["sniper"]},
+            {"id": "metal_gear", "name": "OMG MAIS C’EST METAL GEAR RISING", "cost": 5, "description": "Vous pouvez utiliser une lame atomique (attention le militaire ne sait pas l’utiliser ans la compétence) et vous pouvez donc TOUT couper.", "requires": ["ultrakill"]},
+            {"id": "torero", "name": "Torero", "cost": 2, "description": "Vous donne la capacité d’attirer les ennemis à vous.", "requires": ["james_bond"]},
+            {"id": "cavalier", "name": "Cavalier", "cost": 2, "description": "Lorsque vous êtes dans en mouvement vous ne subissez pas de malus de précision.", "requires": ["torero"]},
+            {"id": "inigo", "name": "My name is inigo Montoya", "cost": 4, "description": "Double les dégâts faits avec des rapières.", "requires": ["torero"]},
+            {"id": "soldat_ryan", "name": "Soldat Ryan", "cost": 2, "description": "Donne la capacité d’utiliser des armes moyennes ou donne une spécialité.", "requires": ["james_bond"]},
+            {"id": "rambo", "name": "Rambo", "cost": 2, "description": "Donne la capacité d’utiliser des armes lourdes.", "requires": ["soldat_ryan"]},
+            {"id": "heavy_metal_hero", "name": "Heavy metal hero", "cost": 4, "description": "Donne spécialité en armes lourdes.", "requires": ["rambo"]},
+        ],
+    },
+    {
+        "id": "social",
+        "name": "Compétences sociales",
+        "skills": [
+            {"id": "social_anxiete", "name": "Social anxiété", "cost": 1, "description": "Vous permet de mettre en doute les capacités de communications de vos adversaires ou de vos alliés, fait 1d4 de emotional damage.", "requires": []},
+            {"id": "hacking_social", "name": "Hacking social", "cost": 3, "description": "Vous êtes capable d’anticiper la prochaine action d’un ennemi.", "requires": ["social_anxiete"]},
+            {"id": "hey_my_man", "name": "Hey my man", "cost": 2, "description": "Vous donne spécialisation ou expertise en persuasion.", "requires": ["social_anxiete"]},
+            {"id": "tu_es_miens", "name": "Tu es miens", "cost": 3, "description": "Vous permet de contrôler mentalement les personnes fragiles mentalement.", "requires": ["hey_my_man"]},
+            {"id": "press_x", "name": "Press x to doubt", "cost": 3, "description": "Vous donne spécialisation ou expertise en investigation et si vous faite un jet inférieur à 3 d’investigation vous pouvez vous concentrer et recommencer.", "requires": ["hey_my_man"]},
+            {"id": "un_peu_plus", "name": "Y’en a un peu plus je vous le mets", "cost": 2, "description": "Lorsque vous vendez un objet vous avez des chances de faire 15% de profit en plus (si vous êtes marchand passe à 25%).", "requires": ["social_anxiete"]},
+            {"id": "i_love_money", "name": "I love money", "cost": 2, "description": "Vous permet d’hacker le compte bancaire de certaines personnes et de gagner des crédits (difficulté variant de 17 à 20 et dépend de votre stat de programmation -4 à la difficulté si vous êtes un petit voleur).", "requires": ["un_peu_plus"]},
+        ],
+    },
+]
+
+
 
 @dataclass
 class WorkbookData:
@@ -211,6 +283,8 @@ class CharacterAppStore:
         self.shop = XlsxMini.load(root / "magasin.xlsx")
         self._enrich_shop_images()
         self._normalize_inventory()
+        self.skill_branches, self.skill_by_id = self._build_skill_catalog()
+        self._init_skill_tree()
 
     @staticmethod
     def _slug(value: str) -> str:
@@ -354,11 +428,139 @@ class CharacterAppStore:
             c["Valeur (en crédit)"] = str(round(value, 2))
             c["Prix unitaire (en crédit)"] = c["Valeur (en crédit)"]
 
+    def _build_skill_catalog(self):
+        branches = []
+        by_id = {}
+        for branch in SKILL_TREE_DEFINITIONS:
+            branch_copy = {
+                "id": branch["id"],
+                "name": branch["name"],
+                "skills": [],
+                "roots": [],
+            }
+            for raw in branch.get("skills", []):
+                skill = {
+                    "id": raw["id"],
+                    "name": raw["name"],
+                    "cost": int(raw["cost"]),
+                    "description": raw.get("description", ""),
+                    "requires": list(raw.get("requires", [])),
+                    "children": [],
+                    "branch_id": branch["id"],
+                    "branch_name": branch["name"],
+                }
+                if skill["id"] in by_id:
+                    raise ValueError(f"Duplicate skill id: {skill['id']}")
+                branch_copy["skills"].append(skill)
+                by_id[skill["id"]] = skill
+            branches.append(branch_copy)
+
+        for skill in by_id.values():
+            for req in skill["requires"]:
+                if req not in by_id:
+                    raise ValueError(f"Unknown prerequisite '{req}' for skill '{skill['id']}'")
+                if by_id[req]["branch_id"] != skill["branch_id"]:
+                    raise ValueError(f"Skill '{skill['id']}' cannot depend on another branch: '{req}'")
+                by_id[req]["children"].append(skill["id"])
+
+        for branch in branches:
+            branch["roots"] = [s["id"] for s in branch["skills"] if not s["requires"]]
+
+        return branches, by_id
+
+    def _skill_row(self):
+        row = next((r for r in self.char.sheets["Feuil1"] if str(r.get("Statistiques", "")).strip().lower() == "niveau"), None)
+        if row is None:
+            row = {
+                "Statistiques": "Niveau",
+                "Score": "1",
+                "Bonus": "0",
+                "Competence": "",
+                "Modificateur": "",
+                "Spécialisation": "0",
+                "Expertise": "0",
+                "Xp compétences": "0",
+                "Points compétences": "0",
+            }
+            self.char.sheets["Feuil1"].append(row)
+        return row
+
+    def _init_skill_tree(self):
+        headers = self.char.headers["Feuil1"]
+        for extra in ["Xp compétences", "Points compétences"]:
+            if extra not in headers:
+                headers.append(extra)
+
+        row = self._skill_row()
+        if str(row.get("Score", "")).strip() == "":
+            row["Score"] = "1"
+        row.setdefault("Xp compétences", "0")
+        row.setdefault("Points compétences", "0")
+
+        for skill_id in self.skill_by_id:
+            key = f"Skill::{skill_id}"
+            if key not in headers:
+                headers.append(key)
+            if str(row.get(key, "")).strip() == "":
+                row[key] = "0"
+
+    def _build_skills_tree_state(self):
+        row = self._skill_row()
+        xp = int(self._to_float(row.get("Xp compétences", 0), 0))
+        points = int(self._to_float(row.get("Points compétences", 0), 0))
+        level = max(1, int(self._to_float(row.get("Score", 1), 1)))
+
+        purchased_set = {skill_id for skill_id in self.skill_by_id if self._truthy(row.get(f"Skill::{skill_id}", "0"))}
+
+        branches = []
+        purchased_list = []
+        for branch in self.skill_branches:
+            branch_skills = []
+            for skill in branch["skills"]:
+                purchased = skill["id"] in purchased_set
+                requirements_met = all(req in purchased_set for req in skill["requires"])
+                branch_skills.append({
+                    "id": skill["id"],
+                    "name": skill["name"],
+                    "cost": skill["cost"],
+                    "description": skill["description"],
+                    "requires": list(skill["requires"]),
+                    "children": list(skill["children"]),
+                    "purchased": purchased,
+                    "requirements_met": requirements_met,
+                })
+                if purchased:
+                    purchased_list.append({
+                        "id": skill["id"],
+                        "name": skill["name"],
+                        "cost": skill["cost"],
+                        "description": skill["description"],
+                        "branch": branch["name"],
+                    })
+            branches.append({
+                "id": branch["id"],
+                "name": branch["name"],
+                "roots": list(branch["roots"]),
+                "skills": branch_skills,
+            })
+
+        return {
+            "level": level,
+            "xp": xp,
+            "xp_to_next": 1000,
+            "points": points,
+            "xp_buttons": [1, 5, 10, 20, 50, 100, 200],
+            "branches": branches,
+            "purchased": purchased_list,
+        }
+
     def _compute_stats_context(self):
         stats = []
         by_name = {}
         for r in self.char.sheets.get("Feuil1", []):
             if r.get("Statistiques"):
+                if self._normalize_key(r.get("Statistiques")) == "niveau":
+                    continue
                 score = int(self._to_float(r.get("Score", 10), 10))
                 raw_bonus = math.floor((score - 10) / 2)
                 name = str(r.get("Statistiques"))
@@ -457,7 +659,12 @@ class CharacterAppStore:
         }
 
     def build_state(self):
-        return {"stats": self._build_stats(), "inventory": self._build_inventory(), "shop": self.shop.sheets}
+        return {
+            "stats": self._build_stats(),
+            "inventory": self._build_inventory(),
+            "shop": self.shop.sheets,
+            "skills_tree": self._build_skills_tree_state(),
+        }
 
     def apply_action(self, payload: dict):
         action = payload.get("action")
@@ -474,11 +681,58 @@ class CharacterAppStore:
         elif action == "sort": self._sort(payload)
         elif action == "update_item": self._update_item(payload)
         elif action == "update_credits": self._set_credits(self._to_float(payload.get("credits", 0)))
+        elif action == "add_skill_xp": self._add_skill_xp(payload)
+        elif action == "buy_skill_tree": feedback = self._buy_skill_tree(payload)
 
         self._sync_derived_tables()
         XlsxMini.save(self.char)
         XlsxMini.save(self.inv)
         return {**feedback, "state": self.build_state()}
+
+    def _add_skill_xp(self, payload):
+        amount = max(0, int(self._to_float(payload.get("amount", 0), 0)))
+        if amount <= 0:
+            return
+        row = self._skill_row()
+        xp = int(self._to_float(row.get("Xp compétences", 0), 0)) + amount
+        level = max(1, int(self._to_float(row.get("Score", 1), 1)))
+        points = int(self._to_float(row.get("Points compétences", 0), 0))
+
+        while xp >= 1000:
+            xp -= 1000
+            level += 1
+            points += 1
+
+        row["Xp compétences"] = str(xp)
+        row["Score"] = str(level)
+        row["Points compétences"] = str(points)
+
+    def _buy_skill_tree(self, payload):
+        skill_id = str(payload.get("id", "")).strip()
+        if not skill_id:
+            return {"ok": False, "error": "Compétence introuvable."}
+
+        target = self.skill_by_id.get(skill_id)
+        if not target:
+            return {"ok": False, "error": "Compétence introuvable."}
+
+        row = self._skill_row()
+        key = f"Skill::{skill_id}"
+        if self._truthy(row.get(key, "0")):
+            return {"ok": False, "error": f"{target['name']} est déjà achetée."}
+
+        missing = [req for req in target["requires"] if not self._truthy(row.get(f"Skill::{req}", "0"))]
+        if missing:
+            missing_names = ", ".join(self.skill_by_id[mid]["name"] for mid in missing)
+            return {"ok": False, "error": f"Prérequis manquants: {missing_names}."}
+
+        points = int(self._to_float(row.get("Points compétences", 0), 0))
+        if points < target["cost"]:
+            return {"ok": False, "error": f"Points insuffisants: {target['cost']} requis."}
+
+        row["Points compétences"] = str(points - target["cost"])
+        row[key] = "1"
+        return {"ok": True}
 
     def _update_stat(self, payload):
         for r in self.char.sheets["Feuil1"]:
