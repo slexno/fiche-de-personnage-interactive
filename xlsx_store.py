@@ -229,6 +229,51 @@ class CharacterAppStore:
         except Exception:
             return default
 
+    @staticmethod
+    def _normalize_key(v) -> str:
+        text = str(v or "").strip().lower()
+        text = unicodedata.normalize("NFKD", text)
+        text = "".join(ch for ch in text if not unicodedata.combining(ch))
+        return re.sub(r"[^a-z]", "", text)
+
+    @staticmethod
+    def _canonical_stat_key(v) -> str:
+        key = CharacterAppStore._normalize_key(v)
+        aliases = {
+            "for": "for",
+            "force": "for",
+            "str": "for",
+            "strength": "for",
+            "dex": "dex",
+            "dexterite": "dex",
+            "dexterity": "dex",
+            "agi": "dex",
+            "agilite": "dex",
+            "agility": "dex",
+            "con": "con",
+            "constitution": "con",
+            "int": "int",
+            "intelligence": "int",
+            "inteligence": "int",
+            "sag": "sag",
+            "sagesse": "sag",
+            "wis": "sag",
+            "wisdom": "sag",
+            "cha": "cha",
+            "charisme": "cha",
+            "charisma": "cha",
+        }
+        return aliases.get(key, key)
+
+    def _find_stat_bonus(self, effective_map: dict[str, float], stat_name: str) -> float:
+        target = self._canonical_stat_key(stat_name)
+        if not target:
+            return 0
+        if target in effective_map:
+            return effective_map[target]
+        short = target[:3]
+        return next((v for k, v in effective_map.items() if k.startswith(short)), 0)
+
     def _enrich_shop_images(self):
         image_dir = self.root / "image"
         files = [f for f in image_dir.iterdir() if f.is_file()] if image_dir.exists() else []
@@ -301,30 +346,28 @@ class CharacterAppStore:
             if r.get("Statistiques"):
                 score = int(self._to_float(r.get("Score", 10), 10))
                 raw_bonus = math.floor((score - 10) / 2)
-                name = r.get("Statistiques")
-                by_name[name.lower()] = {"score": score, "raw_bonus": raw_bonus}
+                name = str(r.get("Statistiques"))
+                key = self._canonical_stat_key(name)
+                by_name[key] = {"score": score, "raw_bonus": raw_bonus}
                 stats.append({"name": name, "score": score, "raw_bonus": raw_bonus, "bonus": raw_bonus})
 
-        force_bonus = next((v["raw_bonus"] for k, v in by_name.items() if k.startswith("for")), 0)
-        dex_key = next((k for k in by_name.keys() if k.startswith("dex")), None)
+        force_bonus = by_name.get("for", {}).get("raw_bonus", 0)
         max_carry = 50 + 10 * force_bonus
         overweight = max(0.0, self._bag_weight() - max_carry)
         dex_penalty = math.ceil(overweight / 10) if overweight > 0 else 0
 
         for st in stats:
-            if st["name"].lower().startswith("dex"):
+            if self._canonical_stat_key(st["name"]) == "dex":
                 st["bonus"] = st["raw_bonus"] - dex_penalty
 
-        effective = {st["name"].lower(): st["bonus"] for st in stats}
+        effective = {self._canonical_stat_key(st["name"]): st["bonus"] for st in stats}
         return stats, effective, max_carry, dex_penalty
 
     def _weapon_hit_display(self, item: dict, effective_map: dict[str, float]) -> str:
         raw_hit = str(item.get("Hit", "") or "").strip()
         base = self._to_float(raw_hit, 0) if re.fullmatch(r"-?\d+(\.\d+)?", raw_hit) else 0
-        mod_name = str(item.get("Hit Stat", "") or item.get("Modificateur", "") or (raw_hit if base == 0 else "")).lower()
-        stat_bonus = 0
-        if mod_name:
-            stat_bonus = next((v for k, v in effective_map.items() if k.startswith(mod_name[:3])), 0)
+        mod_name = str(item.get("Hit Stat", "") or item.get("Modificateur", "") or (raw_hit if base == 0 else ""))
+        stat_bonus = self._find_stat_bonus(effective_map, mod_name)
         spec = 2 if self._truthy(item.get("Hit Specialized", 0)) else 0
         return str(int(base + stat_bonus + spec))
 
@@ -337,9 +380,7 @@ class CharacterAppStore:
             specialized = self._truthy(r.get("Spécialisation", "0"))
             expertise = self._truthy(r.get("Expertise", "0"))
             mod = str(r.get("Modificateur", ""))
-            stat_mod_bonus = 0
-            if mod:
-                stat_mod_bonus = next((v for k, v in effective.items() if k.startswith(mod.lower()[:3])), 0)
+            stat_mod_bonus = self._find_stat_bonus(effective, mod)
             skills.append({
                 "name": r.get("Competence"),
                 "mod": mod,
@@ -348,7 +389,7 @@ class CharacterAppStore:
                 "expertise": expertise,
             })
 
-        dex_bonus = next((s["bonus"] for s in stats if s["name"].lower().startswith("dex")), 0)
+        dex_bonus = next((s["bonus"] for s in stats if self._canonical_stat_key(s["name"]) == "dex"), 0)
         ac_bonus = sum(int(self._to_float(i.get("bonus Armor class", "0"), 0)) for i in self.inv.sheets["sac à dos"] if i.get("type") == "equipement" and i.get("equiped") == "1")
         armor_class = 9 + ac_bonus + dex_bonus
         return {
