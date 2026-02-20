@@ -12,6 +12,61 @@ from xml.etree import ElementTree as ET
 NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 NS_REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 
+SKILL_TREES = {
+    "Compétences d'ingénierie": [
+        ("demineur", "Démineur", 1, "Permet de désamorcer des pièges (ingénieurs: jet avec avantage).", None),
+        ("top_gun", "Top Gun", 2, "Permet de piloter tous types de véhicules.", "demineur"),
+        ("goose", "Goose", 2, "Contrôle des armes de vaisseaux.", "top_gun"),
+        ("good_morning_vietnam", "GOOOOOOOOOOD MORNING VIETNAM", 1, "Interaction pacifique avec les vaisseaux autour de vous.", "top_gun"),
+        ("bob_bricoleur", "Bob le bricoleur", 1, "Permet d'utiliser des outils d'ingénierie.", "demineur"),
+        ("boobies_trap", "Boobies are a trap", 1, "Utilisation de pièges et grenades.", "bob_bricoleur"),
+        ("making_is_fucking", "Making is fucking", 3, "Combinez 2 ou 3 objets pour créer une potentielle nouvelle arme.", "boobies_trap"),
+        ("hacker", "Hacker", 1, "Accès à un terminal portable pour hacker certains objets.", "demineur"),
+        ("neuromancien", "Neuromancien", 3, "Désoriente un ennemi équipé de systèmes internes (stun 1 tour).", "hacker"),
+        ("bip_boup_gnie", "Bip boup gnié", 1, "Permet de casser à distance certains objets électroniques.", "neuromancien"),
+        ("friendly_fire", "Friendly Fire", 3, "Prenez le contrôle de certaines machines automatiques.", "bip_boup_gnie"),
+        ("brain_worm", "Brain Worm", 3, "La puce déstabilise davantage la cible: 1d4 dégâts et la fait tomber.", "neuromancien"),
+        ("storm_approaching", "I am the storm that is approaching", 4, "Applique Brain Worm à tous les ennemis dans 30ft.", "brain_worm"),
+        ("blade_runner", "Blade Runner", 4, "Triple vos actions pendant 1 tour (1x/jour), +1 dextérité.", "neuromancien"),
+        ("jedi", "JEDI", 2, "Spécialité avec les armes CAC énergétiques.", "blade_runner"),
+    ],
+    "Compétences physiques": [
+        ("kung_fu_fighter", "Kung fu fighter", 1, "Ajoute 1 point à la stat de force.", None),
+        ("gros_os", "J’suis pas gros j’ai de gros os", 2, "Augmente le bonus d'AC de tous vos habits (hors casques).", "kung_fu_fighter"),
+        ("leeroy_jenkins", "LEEROY JENKINS", 2, "Charge destructrice jusqu'à 60 pieds, 1d10 dégâts et renversement.", "gros_os"),
+        ("sumo", "Sumo", 2, "Donne spécialité/expertise en athlétisme.", "kung_fu_fighter"),
+        ("meticuleux", "Méticuleux", 2, "Ajoute +1 à la stat de dextérité.", "sumo"),
+        ("gymnaste", "Gymnaste", 2, "Donne spécialité/expertise en acrobatie.", "sumo"),
+        ("ninja", "Ninja", 2, "Donne spécialité/expertise en discrétion.", "kung_fu_fighter"),
+        ("shinobi", "Shinobi", 2, "Donne spécialité avec les armes CAC non énergétiques.", "ninja"),
+        ("naruto_storm", "Naruto shipuden ninja storm", 4, "Permet de courir sur les murs et d'annuler les dégâts de chute.", "ninja"),
+        ("falcon_punch", "Falcon punch", 4, "Permet d'utiliser une arme CAC unique (6d4 dégâts électriques).", "naruto_storm"),
+    ],
+    "Compétences d'armes": [
+        ("james_bond", "My name is bond James bond", 1, "Permet d'utiliser pistolets et armes légères.", None),
+        ("sniper", "Sniper", 2, "Permet d'utiliser des snipers.", "james_bond"),
+        ("33_millions", "33 millions de joules", 3, "Permet d'utiliser des armes de type railgun.", "sniper"),
+        ("why_talking", "Why is he talking", 1, "Oula c’est mystérieux.", "33_millions"),
+        ("ultrakill", "OMG C’EST ULTRAKILL", 2, "Lancer une pièce pour déclencher un critique sur un ennemi aléatoire.", "sniper"),
+        ("metal_gear", "OMG MAIS C’EST METAL GEAR RISING", 5, "Permet d'utiliser une lame atomique pour tout couper.", "ultrakill"),
+        ("torero", "Torero", 2, "Permet d'attirer les ennemis vers vous.", "james_bond"),
+        ("cavalier", "Cavalier", 2, "En mouvement vous ne subissez pas de malus de précision.", "torero"),
+        ("inigo", "My name is inigo Montoya", 4, "Double les dégâts faits avec des rapières.", "torero"),
+        ("soldat_ryan", "Soldat Ryan", 2, "Permet d'utiliser des armes moyennes (ou spécialité).", "james_bond"),
+        ("rambo", "Rambo", 2, "Permet d'utiliser des armes lourdes.", "soldat_ryan"),
+        ("heavy_metal_hero", "Heavy metal hero", 4, "Donne spécialité en armes lourdes.", "rambo"),
+    ],
+    "Compétences sociales": [
+        ("social_anxiete", "Social anxiété", 1, "Met en doute les capacités de communication (1d4 emotional damage).", None),
+        ("hacking_social", "Hacking social", 3, "Permet d'anticiper la prochaine action d'un ennemi.", "social_anxiete"),
+        ("hey_my_man", "Hey my man", 2, "Donne spécialisation/expertise en persuasion.", "social_anxiete"),
+        ("tu_es_miens", "Tu es miens", 3, "Permet de contrôler mentalement les cibles fragiles.", "hey_my_man"),
+        ("press_x", "Press x to doubt", 3, "Donne spécialisation/expertise en investigation et relance dans un cas précis.", "hey_my_man"),
+        ("un_peu_plus", "Y’en a un peu plus je vous le mets", 2, "Chance d'obtenir plus de profit à la vente.", "social_anxiete"),
+        ("i_love_money", "I love money", 2, "Permet d'hacker des comptes bancaires pour gagner des crédits.", "un_peu_plus"),
+    ],
+}
+
 
 @dataclass
 class WorkbookData:
@@ -211,6 +266,7 @@ class CharacterAppStore:
         self.shop = XlsxMini.load(root / "magasin.xlsx")
         self._enrich_shop_images()
         self._normalize_inventory()
+        self._init_skill_tree()
 
     @staticmethod
     def _slug(value: str) -> str:
@@ -354,11 +410,90 @@ class CharacterAppStore:
             c["Valeur (en crédit)"] = str(round(value, 2))
             c["Prix unitaire (en crédit)"] = c["Valeur (en crédit)"]
 
+    def _skill_row(self):
+        row = next((r for r in self.char.sheets["Feuil1"] if str(r.get("Statistiques", "")).strip().lower() == "niveau"), None)
+        if row is None:
+            row = {
+                "Statistiques": "Niveau",
+                "Score": "1",
+                "Bonus": "0",
+                "Competence": "",
+                "Modificateur": "",
+                "Spécialisation": "0",
+                "Expertise": "0",
+                "Xp compétences": "0",
+                "Points compétences": "0",
+            }
+            self.char.sheets["Feuil1"].append(row)
+        return row
+
+    def _init_skill_tree(self):
+        headers = self.char.headers["Feuil1"]
+        for extra in ["Xp compétences", "Points compétences"]:
+            if extra not in headers:
+                headers.append(extra)
+
+        row = self._skill_row()
+        if str(row.get("Score", "")).strip() == "":
+            row["Score"] = "1"
+        row.setdefault("Xp compétences", "0")
+        row.setdefault("Points compétences", "0")
+
+        for _, skills in SKILL_TREES.items():
+            for skill_id, _, _, _, _ in skills:
+                key = f"Skill::{skill_id}"
+                if key not in headers:
+                    headers.append(key)
+                if str(row.get(key, "")).strip() == "":
+                    row[key] = "0"
+
+    def _build_skills_tree_state(self):
+        row = self._skill_row()
+        xp = int(self._to_float(row.get("Xp compétences", 0), 0))
+        points = int(self._to_float(row.get("Points compétences", 0), 0))
+        level = max(1, int(self._to_float(row.get("Score", 1), 1)))
+
+        branches = []
+        purchased_list = []
+        for branch_name, skills in SKILL_TREES.items():
+            branch_nodes = []
+            for skill_id, name, cost, description, prereq in skills:
+                purchased = self._truthy(row.get(f"Skill::{skill_id}", "0"))
+                branch_nodes.append({
+                    "id": skill_id,
+                    "name": name,
+                    "cost": cost,
+                    "description": description,
+                    "prerequisite": prereq,
+                    "purchased": purchased,
+                })
+                if purchased:
+                    purchased_list.append({
+                        "id": skill_id,
+                        "name": name,
+                        "cost": cost,
+                        "description": description,
+                        "branch": branch_name,
+                    })
+            branches.append({"name": branch_name, "skills": branch_nodes})
+
+        return {
+            "level": level,
+            "xp": xp,
+            "xp_to_next": 1000,
+            "points": points,
+            "xp_buttons": [1, 5, 10, 20, 50, 100, 200],
+            "branches": branches,
+            "purchased": purchased_list,
+        }
+
     def _compute_stats_context(self):
         stats = []
         by_name = {}
         for r in self.char.sheets.get("Feuil1", []):
             if r.get("Statistiques"):
+                if self._normalize_key(r.get("Statistiques")) == "niveau":
+                    continue
                 score = int(self._to_float(r.get("Score", 10), 10))
                 raw_bonus = math.floor((score - 10) / 2)
                 name = str(r.get("Statistiques"))
@@ -457,7 +592,12 @@ class CharacterAppStore:
         }
 
     def build_state(self):
-        return {"stats": self._build_stats(), "inventory": self._build_inventory(), "shop": self.shop.sheets}
+        return {
+            "stats": self._build_stats(),
+            "inventory": self._build_inventory(),
+            "shop": self.shop.sheets,
+            "skills_tree": self._build_skills_tree_state(),
+        }
 
     def apply_action(self, payload: dict):
         action = payload.get("action")
@@ -474,11 +614,64 @@ class CharacterAppStore:
         elif action == "sort": self._sort(payload)
         elif action == "update_item": self._update_item(payload)
         elif action == "update_credits": self._set_credits(self._to_float(payload.get("credits", 0)))
+        elif action == "add_skill_xp": self._add_skill_xp(payload)
+        elif action == "buy_skill_tree": feedback = self._buy_skill_tree(payload)
 
         self._sync_derived_tables()
         XlsxMini.save(self.char)
         XlsxMini.save(self.inv)
         return {**feedback, "state": self.build_state()}
+
+    def _add_skill_xp(self, payload):
+        amount = max(0, int(self._to_float(payload.get("amount", 0), 0)))
+        if amount <= 0:
+            return
+        row = self._skill_row()
+        xp = int(self._to_float(row.get("Xp compétences", 0), 0)) + amount
+        level = max(1, int(self._to_float(row.get("Score", 1), 1)))
+        points = int(self._to_float(row.get("Points compétences", 0), 0))
+
+        while xp >= 1000:
+            xp -= 1000
+            level += 1
+            points += 1
+
+        row["Xp compétences"] = str(xp)
+        row["Score"] = str(level)
+        row["Points compétences"] = str(points)
+
+    def _buy_skill_tree(self, payload):
+        skill_id = str(payload.get("id", "")).strip()
+        if not skill_id:
+            return {"ok": False, "error": "Compétence introuvable."}
+
+        target = None
+        for _, skills in SKILL_TREES.items():
+            for node in skills:
+                if node[0] == skill_id:
+                    target = node
+                    break
+            if target:
+                break
+        if not target:
+            return {"ok": False, "error": "Compétence introuvable."}
+
+        _, name, cost, _, prereq = target
+        row = self._skill_row()
+        key = f"Skill::{skill_id}"
+        if self._truthy(row.get(key, "0")):
+            return {"ok": False, "error": f"{name} est déjà achetée."}
+
+        if prereq and not self._truthy(row.get(f"Skill::{prereq}", "0")):
+            return {"ok": False, "error": "Vous devez d'abord acheter la compétence précédente."}
+
+        points = int(self._to_float(row.get("Points compétences", 0), 0))
+        if points < cost:
+            return {"ok": False, "error": f"Points insuffisants: {cost} requis."}
+
+        row["Points compétences"] = str(points - cost)
+        row[key] = "1"
+        return {"ok": True}
 
     def _update_stat(self, payload):
         for r in self.char.sheets["Feuil1"]:

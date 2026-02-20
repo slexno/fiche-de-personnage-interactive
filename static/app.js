@@ -30,6 +30,9 @@ const apiAction = async (payload) => {
   if (json.ok === false && payload.action === 'add_item') {
     showAlertModal(json.error || 'Veuillez renseigner un nom et un prix valide.');
   }
+  if (json.ok === false && payload.action === 'buy_skill_tree') {
+    showAlertModal(json.error || "Impossible d'acheter cette compétence.");
+  }
 
   state = json.state;
   render();
@@ -64,6 +67,7 @@ const render = () => {
   renderStats();
   renderInventory();
   renderShop();
+  renderSkills();
 };
 
 const renderStats = () => {
@@ -84,6 +88,10 @@ const renderStats = () => {
           <tr><th>Compétence</th><th>Modif</th><th>Bonus</th><th>Spécialisation</th><th>Expertise</th></tr>
           ${s.skills.map(sk => `<tr><td>${sk.name}</td><td>${sk.mod}</td><td>${sk.bonus >= 0 ? '+' : ''}${sk.bonus}</td><td><input type="checkbox" ${sk.specialized ? 'checked' : ''} onchange="toggleSkill('${sk.name}', this.checked)"></td><td><input type="checkbox" ${sk.expertise ? 'checked' : ''} onchange="toggleExpertise('${sk.name}', this.checked)"></td></tr>`).join('')}
         </table></div>
+        <h3>Compétences achetées</h3>
+        <div class='row'>
+          ${(state.skills_tree?.purchased || []).map(sk => `<button onclick="openOwnedSkillDetails('${sk.id}')">${sk.name}</button>`).join('') || '<span class="small">Aucune compétence achetée</span>'}
+        </div>
       </div>
     </div>`;
 };
@@ -163,6 +171,36 @@ const renderShop = () => {
   document.getElementById('shop').innerHTML = sections;
 };
 
+const renderSkills = () => {
+  const tree = state.skills_tree;
+  if (!tree) {
+    document.getElementById('skills').innerHTML = '<div class="panel"><p>Aucune donnée de compétences.</p></div>';
+    return;
+  }
+
+  const xpButtons = (tree.xp_buttons || []).map(val => `<button onclick="addSkillXp(${val})">+${val} XP</button>`).join('');
+  const branches = (tree.branches || []).map(branch => `
+    <div class="panel">
+      <h3>${branch.name}</h3>
+      <div class="skills-list">
+        ${branch.skills.map(sk => {
+          const lock = sk.prerequisite && !(branch.skills.find(s => s.id === sk.prerequisite)?.purchased || (tree.purchased || []).some(p => p.id === sk.prerequisite));
+          const status = sk.purchased ? '<span class="skill-tag bought">Achetée</span>' : (lock ? '<span class="skill-tag locked">Verrouillée</span>' : '<span class="skill-tag available">Disponible</span>');
+          return `<button class="skill-node ${sk.purchased ? 'is-bought' : ''}" onclick="openSkillModal('${sk.id}')"><strong>${sk.name}</strong><span>${sk.cost} pts</span>${status}</button>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('skills').innerHTML = `
+    <div class="panel">
+      <h2>Progression des compétences</h2>
+      <div class="row"><strong>Niveau:</strong> ${tree.level} <strong>XP:</strong> ${tree.xp}/1000 <strong>Points disponibles:</strong> ${tree.points}</div>
+      <div class="row">${xpButtons}</div>
+    </div>
+    <div class="grid skills-grid">${branches}</div>
+  `;
+};
+
 const getInventoryItem = (id) => [...state.inventory.bag, ...state.inventory.chest].find(x => x.id === id);
 
 window.updateStat = (name, score) => apiAction({ action: 'update_stat', name, score });
@@ -178,11 +216,31 @@ window.buy = (sheet, name, qty=null) => {
   return apiAction({ action: 'buy', sheet, name, qty: val });
 };
 window.buyEncoded = (sheet, encodedName) => window.buy(sheet, decodeURIComponent(encodedName));
+window.addSkillXp = (amount) => apiAction({ action: 'add_skill_xp', amount });
+window.buySkillTree = (id) => apiAction({ action: 'buy_skill_tree', id });
+window.openSkillModal = (id) => {
+  const tree = state.skills_tree || {};
+  const skill = (tree.branches || []).flatMap(b => b.skills || []).find(s => s.id === id);
+  if (!skill) return;
+  const prerequisiteName = skill.prerequisite
+    ? ((tree.branches || []).flatMap(b => b.skills || []).find(s => s.id === skill.prerequisite)?.name || skill.prerequisite)
+    : null;
+  const prerequisiteOk = !skill.prerequisite || (tree.purchased || []).some(s => s.id === skill.prerequisite);
+  const canBuy = !skill.purchased && prerequisiteOk && Number(tree.points || 0) >= Number(skill.cost || 0);
+  const info = prerequisiteName ? `<p><strong>Prérequis:</strong> ${prerequisiteName}</p>` : '<p><strong>Prérequis:</strong> Aucun</p>';
+  document.getElementById('modal-title').textContent = skill.name;
+  document.getElementById('modal-body').innerHTML = `<p>${skill.description || ''}</p><p><strong>Coût:</strong> ${skill.cost} point(s)</p>${info}`;
+  document.getElementById('modal-actions').innerHTML = canBuy
+    ? `<button onclick="buySkillTree('${skill.id}')">Acheter</button><button onclick="closeModal()">Fermer</button>`
+    : `<button onclick="closeModal()">Fermer</button>`;
+  document.getElementById('item-modal').showModal();
+};
+window.openOwnedSkillDetails = (id) => window.openSkillModal(id);
 window.addItem = () => {
   const name = document.getElementById('n').value.trim();
   const unitPrice = document.getElementById('pu').value.trim();
   if (!name) {
-    showAlertModal('Le nom de l'objet est obligatoire.');
+    showAlertModal("Le nom de l'objet est obligatoire.");
     return Promise.resolve({ ok: false });
   }
   if (!unitPrice || Number.isNaN(Number(unitPrice))) {
