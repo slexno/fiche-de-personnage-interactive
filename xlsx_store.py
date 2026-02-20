@@ -265,6 +265,21 @@ class CharacterAppStore:
         }
         return aliases.get(key, key)
 
+
+    @staticmethod
+    def _display_stat_name(v) -> str:
+        canonical = CharacterAppStore._canonical_stat_key(v)
+        labels = {
+            "for": "Force",
+            "dex": "Dextérité",
+            "con": "Constitution",
+            "int": "Intelligence",
+            "sag": "Sagesse",
+            "cha": "Charisme",
+        }
+        raw = str(v or "").strip()
+        return labels.get(canonical, raw)
+
     def _find_stat_bonus(self, effective_map: dict[str, float], stat_name: str) -> float:
         target = self._canonical_stat_key(stat_name)
         if not target:
@@ -383,7 +398,7 @@ class CharacterAppStore:
             stat_mod_bonus = self._find_stat_bonus(effective, mod)
             skills.append({
                 "name": r.get("Competence"),
-                "mod": mod,
+                "mod": self._display_stat_name(mod) if mod else mod,
                 "bonus": stat_mod_bonus + (2 if specialized else 0) + (2 if expertise else 0),
                 "specialized": specialized,
                 "expertise": expertise,
@@ -393,7 +408,7 @@ class CharacterAppStore:
         ac_bonus = sum(int(self._to_float(i.get("bonus Armor class", "0"), 0)) for i in self.inv.sheets["sac à dos"] if i.get("type") == "equipement" and i.get("equiped") == "1")
         armor_class = 9 + ac_bonus + dex_bonus
         return {
-            "stats": [{"name": s["name"], "score": s["score"], "bonus": s["bonus"]} for s in stats],
+            "stats": [{"name": self._display_stat_name(s["name"]), "score": s["score"], "bonus": s["bonus"]} for s in stats],
             "skills": skills,
             "armor_class": armor_class,
             "max_carry": max_carry,
@@ -467,7 +482,7 @@ class CharacterAppStore:
 
     def _update_stat(self, payload):
         for r in self.char.sheets["Feuil1"]:
-            if r.get("Statistiques") == payload["name"]:
+            if self._canonical_stat_key(r.get("Statistiques")) == self._canonical_stat_key(payload.get("name")):
                 val = max(1, min(20, int(float(payload["score"]))))
                 r["Score"] = str(val)
                 r["Bonus"] = str(math.floor((val - 10) / 2))
