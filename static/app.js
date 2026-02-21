@@ -16,6 +16,8 @@ const resolveImageSrc = (value) => {
 
 const itemActions = new Set(['toggle_equip', 'assign_type', 'sell']);
 
+const escapeHtml = (v) => clean(v).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+
 const apiAction = async (payload) => {
   const res = await fetch('/api/action', {
     method: 'POST',
@@ -26,6 +28,12 @@ const apiAction = async (payload) => {
 
   if (json.ok === false && payload.action === 'buy') {
     showAlertModal(`Fonds insuffisants. Il vous manque ${money(json.missing_credits || 0)} crédits.`);
+  }
+  if (json.ok === false && payload.action === 'add_item') {
+    showAlertModal(json.error || 'Veuillez renseigner un nom et un prix valide.');
+  }
+  if (json.ok === false && payload.action === 'buy_skill_tree') {
+    showAlertModal(json.error || "Impossible d'acheter cette compétence.");
   }
 
   state = json.state;
@@ -61,6 +69,7 @@ const render = () => {
   renderStats();
   renderInventory();
   renderShop();
+  renderSkills();
 };
 
 const renderStats = () => {
@@ -74,6 +83,7 @@ const renderStats = () => {
           ${s.stats.map(st => `<tr><td>${st.name}</td><td><input type="number" min="1" max="20" value="${st.score}" onchange="updateStat('${st.name}', this.value)"></td><td>${st.bonus >= 0 ? '+' : ''}${st.bonus}</td></tr>`).join('')}
         </table></div>
         <p><strong>Armor class :</strong> ${s.armor_class}</p>
+        <div class="row"><strong>PV :</strong> <input type="number" min="0" value="${s.hp?.value ?? 0}" onchange="updateHp(this.value)" style="width:120px"> <span class="small">Modificateur constitution: ${(s.hp?.con_bonus ?? 0) >= 0 ? '+' : ""}${s.hp?.con_bonus ?? 0}</span></div>
       </div>
       <div class="panel">
         <h2>Compétences</h2>
@@ -81,6 +91,10 @@ const renderStats = () => {
           <tr><th>Compétence</th><th>Modif</th><th>Bonus</th><th>Spécialisation</th><th>Expertise</th></tr>
           ${s.skills.map(sk => `<tr><td>${sk.name}</td><td>${sk.mod}</td><td>${sk.bonus >= 0 ? '+' : ''}${sk.bonus}</td><td><input type="checkbox" ${sk.specialized ? 'checked' : ''} onchange="toggleSkill('${sk.name}', this.checked)"></td><td><input type="checkbox" ${sk.expertise ? 'checked' : ''} onchange="toggleExpertise('${sk.name}', this.checked)"></td></tr>`).join('')}
         </table></div>
+        <h3>Compétences achetées</h3>
+        <div class='row'>
+          ${(state.skills_tree?.purchased || []).map(sk => `<button onclick="openOwnedSkillDetails('${sk.id}')">${sk.name}</button>`).join('') || '<span class="small">Aucune compétence achetée</span>'}
+        </div>
       </div>
     </div>`;
 };
@@ -160,9 +174,53 @@ const renderShop = () => {
   document.getElementById('shop').innerHTML = sections;
 };
 
+const skillMapFromBranch = (branch) => {
+  const out = {};
+  (branch.skills || []).forEach(sk => {
+    out[sk.id] = sk;
+  });
+  return out;
+};
+
+const renderSkillTreeNode = (skillId, skillMap) => {
+  const skill = skillMap[skillId];
+  if (!skill) return '';
+  const status = skill.purchased
+    ? '<span class="skill-tag bought">Achetée</span>'
+    : (skill.requirements_met ? '<span class="skill-tag available">Disponible</span>' : '<span class="skill-tag locked">Verrouillée</span>');
+  const children = (skill.children || []).map(childId => renderSkillTreeNode(childId, skillMap)).join('');
+  const childHtml = children ? `<ul>${children}</ul>` : '';
+  return `<li><button class="skill-node ${skill.purchased ? 'is-bought' : ''}" onclick="openSkillModal('${skill.id}')"><strong>${escapeHtml(skill.name)}</strong><span>${skill.cost} pts</span>${status}</button>${childHtml}</li>`;
+};
+
+const renderSkills = () => {
+  const tree = state.skills_tree;
+  if (!tree) {
+    document.getElementById('skills').innerHTML = '<div class="panel"><p>Aucune donnée de compétences.</p></div>';
+    return;
+  }
+
+  const xpButtons = (tree.xp_buttons || []).map(val => `<button onclick="addSkillXp(${val})">+${val} XP</button>`).join('');
+  const branches = (tree.branches || []).map(branch => {
+    const skillMap = skillMapFromBranch(branch);
+    const roots = (branch.roots || []).map(rootId => renderSkillTreeNode(rootId, skillMap)).join('');
+    return `<div class="panel"><h3>${escapeHtml(branch.name)}</h3><div class="branch-tree"><ul>${roots}</ul></div></div>`;
+  }).join('');
+
+  document.getElementById('skills').innerHTML = `
+    <div class="panel">
+      <h2>Progression des compétences</h2>
+      <div class="row"><strong>Niveau:</strong> ${tree.level} <strong>XP:</strong> ${tree.xp}/1000 <strong>Points disponibles:</strong> ${tree.points}</div>
+      <div class="row">${xpButtons}</div>
+    </div>
+    <div class="grid skills-grid">${branches}</div>
+  `;
+};
+
 const getInventoryItem = (id) => [...state.inventory.bag, ...state.inventory.chest].find(x => x.id === id);
 
 window.updateStat = (name, score) => apiAction({ action: 'update_stat', name, score });
+window.updateHp = (value) => apiAction({ action: 'update_hp', value });
 window.toggleSkill = (name, specialized) => apiAction({ action: 'toggle_skill', name, specialized });
 window.toggleExpertise = (name, expertise) => apiAction({ action: 'toggle_expertise', name, expertise });
 window.sortBag = (key) => apiAction({ action: 'sort', key, source: 'sac à dos' });
@@ -175,18 +233,54 @@ window.buy = (sheet, name, qty=null) => {
   return apiAction({ action: 'buy', sheet, name, qty: val });
 };
 window.buyEncoded = (sheet, encodedName) => window.buy(sheet, decodeURIComponent(encodedName));
-window.addItem = () => apiAction({ action: 'add_item', item: {
-  Objet: document.getElementById('n').value,
-  'Prix unitaire (en crédit)': document.getElementById('pu').value,
-  'poid unitaire (kg)': document.getElementById('wu').value,
-  Quantité: document.getElementById('q').value,
-  description: document.getElementById('d').value,
-  'Range (ft)': document.getElementById('range').value,
-  Hit: document.getElementById('hit').value,
-  Damage: document.getElementById('damage').value,
-  'bonus Armor class': document.getElementById('ac').value,
-  'effet(optionel)': document.getElementById('effet').value,
-}});
+window.addSkillXp = (amount) => apiAction({ action: 'add_skill_xp', amount });
+window.buySkillTree = (id) => apiAction({ action: 'buy_skill_tree', id });
+window.openSkillModal = (id) => {
+  const tree = state.skills_tree || {};
+  const allSkills = (tree.branches || []).flatMap(b => b.skills || []);
+  const skill = allSkills.find(s => s.id === id);
+  if (!skill) return;
+  const requiredSkills = (skill.requires || []).map(reqId => allSkills.find(s => s.id === reqId)).filter(Boolean);
+  const missingSkills = requiredSkills.filter(req => !req.purchased);
+  const prerequisiteLabel = requiredSkills.length
+    ? requiredSkills.map(req => req.name).join(', ')
+    : 'Aucun';
+  const canBuy = !skill.purchased && missingSkills.length === 0 && Number(tree.points || 0) >= Number(skill.cost || 0);
+  const warning = missingSkills.length
+    ? `<p class="warn"><strong>Prérequis manquants:</strong> ${missingSkills.map(s => s.name).join(', ')}</p>`
+    : '';
+  document.getElementById('modal-title').textContent = skill.name;
+  document.getElementById('modal-body').innerHTML = `<p>${skill.description || ''}</p><p><strong>Coût:</strong> ${skill.cost} point(s)</p><p><strong>Prérequis:</strong> ${prerequisiteLabel}</p>${warning}`;
+  document.getElementById('modal-actions').innerHTML = canBuy
+    ? `<button onclick="buySkillTree('${skill.id}')">Acheter</button><button onclick="closeModal()">Fermer</button>`
+    : `<button onclick="closeModal()">Fermer</button>`;
+  document.getElementById('item-modal').showModal();
+};
+window.openOwnedSkillDetails = (id) => window.openSkillModal(id);
+window.addItem = () => {
+  const name = document.getElementById('n').value.trim();
+  const unitPrice = document.getElementById('pu').value.trim();
+  if (!name) {
+    showAlertModal("Le nom de l'objet est obligatoire.");
+    return Promise.resolve({ ok: false });
+  }
+  if (!unitPrice || Number.isNaN(Number(unitPrice))) {
+    showAlertModal('Le prix unitaire est obligatoire et doit être un nombre.');
+    return Promise.resolve({ ok: false });
+  }
+  return apiAction({ action: 'add_item', item: {
+    Objet: name,
+    'Prix unitaire (en crédit)': unitPrice,
+    'poid unitaire (kg)': document.getElementById('wu').value,
+    Quantité: document.getElementById('q').value,
+    description: document.getElementById('d').value,
+    'Range (ft)': document.getElementById('range').value,
+    Hit: document.getElementById('hit').value,
+    Damage: document.getElementById('damage').value,
+    'bonus Armor class': document.getElementById('ac').value,
+    'effet(optionel)': document.getElementById('effet').value,
+  }});
+};
 
 window.openInventoryModal = (id) => {
   const it = getInventoryItem(id);
